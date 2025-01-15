@@ -1,4 +1,4 @@
-import { uploadFilesOnCloudinary } from '../../utils/cloudinary.utils.js';
+import { removeFile, uploadFilesOnCloudinary } from '../../utils/cloudinary.utils.js';
 import { users } from '../../models/users.models.js';
 import { ErrorHandler } from '../../errors/errorHandler.errors.js';
 import { asyncErrorHandler } from '../../errors/asynHandler.error.js';
@@ -20,11 +20,14 @@ export const register = asyncErrorHandler(async (req, res, next) => {
 
   const uploadResponse = await uploadFilesOnCloudinary({files : [req.file] , folder : 'socialMedia'})
     console.log(uploadResponse)
-  if(uploadResponse.success == false) return next(new ErrorHandler("We get error during uploading files !", 400))
+  if(uploadResponse.success == false) {
+    await removeFile({files : [req.file]})
+    return next(new ErrorHandler("We get error during uploading files !", 400))
+  }
 
   avatar.public_id = uploadResponse.results[0].public_id;
-  avatar.url = uploadResponse.results[0].secure_url;
-
+  avatar.url = uploadResponse.results[0].url;
+  await removeFile({files : [req.file]})
   const userData = {
     firstname,
     lastname,
