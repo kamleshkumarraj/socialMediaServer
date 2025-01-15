@@ -62,10 +62,10 @@ userSchema.pre('save' , async function(next){
     this.password = await bcrypt.hash(this.password , 10)
 })
 
-//method for creating new jwt tocken
-userSchema.methods.getJWTTocken = function(){
+//method for creating new jwt token
+userSchema.methods.getJWTToken = function(){
     return jwt.sign({id : this._id},process.env.JWT_SECRET , {
-        
+        expiresIn : process.env.JWT_EXPIRE
     })
 }
 
@@ -75,17 +75,17 @@ userSchema.methods.passwordCompare = async function(password){
     return status;
 }
 
-//method for generating resetPassword tocken.
+//method for generating resetPassword token.
 
-userSchema.methods.generateResetPasswordTocken = function(){
-    const resetTocken = crypto.randomBytes(20).toString("hex")
+userSchema.methods.generateResetPasswordToken = function(){
+    const resetToken = crypto.randomBytes(20).toString("hex")
 
-    const hashResetTocken = crypto.createHash('sha256').update(resetTocken).digest("hex")
+    const hashResetToken = crypto.createHash('sha256').update(resetToken).digest("hex")
 
-    this.resetPasswordTocken = hashResetTocken;
+    this.resetPasswordToken = hashResetToken;
     this.resetPasswordExpiry = Date.now() + 15*60*1000;
 
-    return resetTocken;
+    return resetToken;
 }
 
 export const users = mongoose.model('user' , userSchema)
