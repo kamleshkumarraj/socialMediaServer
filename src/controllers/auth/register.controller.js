@@ -19,7 +19,7 @@ export const register = asyncErrorHandler(async (req, res, next) => {
   if(!req.file) return next(new ErrorHandler('file is required', 400));
 
   const uploadResponse = await uploadFilesOnCloudinary({files : [req.file] , folder : 'socialMedia'})
-
+    console.log(uploadResponse)
   if(uploadResponse.success == false) return next(new ErrorHandler("We get error during uploading files !", 400))
 
   avatar.public_id = uploadResponse.results[0].public_id;
@@ -34,8 +34,8 @@ export const register = asyncErrorHandler(async (req, res, next) => {
     avatar,
     middlename,
   };
-  const user = await userModels.create(userData);
+  const user = await users.create(userData);
 
   sendResponse({res , status : 201 , data : user , message : 'User registered successfully'})
-  
+
 });
