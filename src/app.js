@@ -1,6 +1,7 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors'
+import { authRouter } from './routes/auth/auth.routes.js';
 
 export const app = express();
 
@@ -20,7 +21,8 @@ app.use(express.json({
     limit : '20kb'
 }))
 
-
+//now we handle routes related from authentication.
+app.use('/api/v1/auth' , authRouter)
 
 
 app.use((err , req , res , next) => {
