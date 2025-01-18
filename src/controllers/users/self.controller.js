@@ -1,11 +1,11 @@
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
-import { users } from "../../models/users.models.js";
+import { Users } from "../../models/users.models.js";
 import { removeFile, removeMultipleFileFromCloudinary, uploadFilesOnCloudinary } from "../../utils/cloudinary.utils.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 
 export const getBio = asyncErrorHandler(async (req, res, next) => {
-  const myBio = await users.aggregate([
+  const myBio = await Users.aggregate([
     {
       $match: {
         _id: req.user.id,
@@ -56,7 +56,7 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
 
 export const updateBio = asyncErrorHandler(async (req , res , next) => {
     const content = req.body;
-    const bio = await users.findByIdAndUpdate(req.user.id , content , {new : true , runValidators : true});
+    const bio = await Users.findByIdAndUpdate(req.user.id , content , {new : true , runValidators : true});
 
     if(!bio) return next(new ErrorHandler("please send valid user id !",404))
 
@@ -83,7 +83,7 @@ export const updateBioAvatar = asyncErrorHandler(async (req, res, next) => {
         return next(new ErrorHandler(removeError.message || "Error while removing the previous thumbnail !" , 400))
     }
 
-    const bio = await users.findByIdAndUpdate(req.user.id , {avatar : image} , {new : true , runValidators : true});
+    const bio = await Users.findByIdAndUpdate(req.user.id , {avatar : image} , {new : true , runValidators : true});
 
     sendResponse({res , status : 200 , data : bio , message : 'User bio avatar updated successfully !'})
 })
@@ -94,7 +94,7 @@ export const updatePassword = asyncErrorHandler(async (req, res, next) => {
     //check password and confirm password are same or not.
     if(password !== confirmPassword) return next(new ErrorHandler("Password and Confirm Password must be same !" , 400))
 
-    const user = await users.findById(req.user.id).select("+password");
+    const user = await Users.findById(req.user.id).select("+password");
     
     //first check old password is correct or not.   
     if(!(await user.passwordCompare(oldPassword))) return next(new ErrorHandler("Old password is not correct !" , 400))
