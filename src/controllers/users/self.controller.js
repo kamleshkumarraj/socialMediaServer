@@ -90,7 +90,7 @@ export const updateBioAvatar = asyncErrorHandler(async (req, res, next) => {
 
 export const updatePassword = asyncErrorHandler(async (req, res, next) => {
     const {password , confirmPassword , oldPassword} = req.body;
-    
+
     //check password and confirm password are same or not.
     if(password !== confirmPassword) return next(new ErrorHandler("Password and Confirm Password must be same !" , 400))
 
@@ -104,4 +104,6 @@ export const updatePassword = asyncErrorHandler(async (req, res, next) => {
     await user.save({validateBeforeSave : false});
 
     sendResponse({res , status : 200 , data : user , message : 'User password updated successfully !'})
-} )
+})
+
+
