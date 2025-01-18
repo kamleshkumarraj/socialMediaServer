@@ -2,6 +2,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors'
 import { authRouter } from './routes/auth/auth.routes.js';
+import { postsRouter } from './routes/users/posts.routes.js';
 
 export const app = express();
 
@@ -23,6 +24,9 @@ app.use(express.json({
 
 //now we handle routes related from authentication.
 app.use('/api/v1/auth' , authRouter)
+
+// now we handle user related routes.
+app.use('/api/v1/user/post' , postsRouter)
 
 
 app.use((err , req , res , next) => {

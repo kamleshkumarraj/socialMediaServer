@@ -1,5 +1,5 @@
 import { removeFile, uploadFilesOnCloudinary } from '../../utils/cloudinary.utils.js';
-import { users } from '../../models/users.models.js';
+import { Users } from '../../models/users.models.js';
 import { ErrorHandler } from '../../errors/errorHandler.errors.js';
 import { asyncErrorHandler } from '../../errors/asynHandler.error.js';
 import { sendResponse } from '../../utils/sendResponse.js';
@@ -11,7 +11,7 @@ export const register = asyncErrorHandler(async (req, res, next) => {
 
   //step 1 : check user is already registered or not. that is already verified from userSchema.
 
-  const existUser = await users.findOne({email})
+  const existUser = await Users.findOne({email})
   if(existUser) return next(new ErrorHandler('User already registered', 400))
   
   const avatar = { public_id: '', url: '' };
@@ -37,7 +37,7 @@ export const register = asyncErrorHandler(async (req, res, next) => {
     avatar,
     middlename,
   };
-  const user = await users.create(userData);
+  const user = await Users.create(userData);
 
   sendResponse({res , status : 201 , data : user , message : 'User registered successfully'})
 
