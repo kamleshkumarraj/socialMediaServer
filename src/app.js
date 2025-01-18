@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors'
 import { authRouter } from './routes/auth/auth.routes.js';
 import { postsRouter } from './routes/users/posts.routes.js';
+import { removeFile } from './utils/cloudinary.utils.js';
 
 export const app = express();
 
@@ -29,7 +30,8 @@ app.use('/api/v1/auth' , authRouter)
 app.use('/api/v1/user/post' , postsRouter)
 
 
-app.use((err , req , res , next) => {
+app.use(async (err , req , res , next) => {
+    if(req.file) await removeFile({files : [req.file]})
     err.message = err.message || "Internal Server Error",
     err.status = err.status || 500
 

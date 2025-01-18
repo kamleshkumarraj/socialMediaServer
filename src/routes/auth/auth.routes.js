@@ -6,5 +6,5 @@ import { uploads } from "../../utils/files.utils.js";
 export const authRouter = Router();
 
 authRouter.route('/register').post(uploads.single('avatar') ,  register);
-authRouter.post('/login' , login);
+authRouter.route('/login').post(login);
 

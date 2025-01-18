@@ -60,7 +60,7 @@ const postSchema = new mongoose.Schema({
         enum : ["public" , "private"],
         default : "public"
     },
-    save : []
+    savePost : []
 },{timestamps : true})
 
 

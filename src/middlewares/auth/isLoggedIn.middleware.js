@@ -9,9 +9,9 @@ export const isLoggedIn = asyncErrorHandler(async (req , res , next) => {
 
     try {
         const decodeData = jwt.verify(token , process.env.JWT_SECRET);
-        console.log(decodeData)
-        const userData = await Users.findById(decodeData)
+        const userData = await Users.findById(decodeData.id)
         req.user = userData;
+        next();
     } catch (error) {
         return next(new ErrorHandler("please login to access this resource !",402))
     }

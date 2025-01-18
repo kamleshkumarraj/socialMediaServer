@@ -6,6 +6,7 @@ import { removeFile, uploadFilesOnCloudinary } from "../../utils/cloudinary.util
 import { sendResponse } from "../../utils/sendResponse.js";
 
 export const createPost = asyncErrorHandler(async (req, res, next) => {
+  console.log("Create post is running !")
   const imageFile = req.file;
   if(!imageFile) return next(new ErrorHandler("Thumbnail is required for post !" , 400))
 
@@ -13,12 +14,17 @@ export const createPost = asyncErrorHandler(async (req, res, next) => {
 
   if(!success) return next(new ErrorHandler(error.message || "Error while uploading the thumbnail !" , 400))
 
-  const image = {public_id : results[0].public_id , url : results[0].url}
+  const image = {publicId : results[0].public_id , url : results[0].url}
   const post = await Posts.create({creator : req.user.id , images : image , ...req.body})
 
   await removeFile({files : [imageFile]})
 
-  sendResponse({res , status : 201 , data : post , message : 'Post created successfully !'})
+  // sendResponse({res , status : 201 , data : post , message : 'Post created successfully !'})
+  res.status(200).json({
+    success : true,
+    message : 'Post created successfully !',
+    data : post
+  })
 })
 
 export const deletePost = asyncErrorHandler(async (req, res, next) => {

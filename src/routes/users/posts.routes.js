@@ -21,4 +21,4 @@ postsRouter
     validateResult,
     createPost
   );
-postsRouter.route("/delete").delete(deletePost);
+postsRouter.route("/delete/:id").delete(deletePost);
