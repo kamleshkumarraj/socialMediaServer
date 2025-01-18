@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { type } from "os";
 
 const userSchema = new mongoose.Schema({
     firstname : {
@@ -49,6 +50,10 @@ const userSchema = new mongoose.Schema({
     roles : {
         type : String,
         default : 'user'
+    },
+    followers : {
+        type : mongoose.Schema.Types.ObjectId,
+        ref : "follower"
     },
     resetPasswordTocken : String,
     resetPasswordExpiry : Date
