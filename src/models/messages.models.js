@@ -1,6 +1,10 @@
 import mongoose from "mongoose"
 
 const messageSchema = new mongoose.Schema({
+    chatId : {
+        type : mongoose.Schema.ObjectId,
+        ref : "Chat"
+    },
     sender : {
         type : mongoose.Schema.ObjectId,
         ref : "user"

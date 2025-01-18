@@ -11,4 +11,4 @@ const followerSchema = new mongoose.Schema({
     }
 } , {timestamps : true})    
 
-export const Followers = mongoose.model('follower' , followerSchema)
+export const Followers = mongoose.model('Follower' , followerSchema)

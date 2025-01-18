@@ -13,7 +13,7 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
     },
     {
       $lookup: {
-        from: "follower",
+        from: "Follower",
         localField: "_id",
         foreignField: "followers",
         as: "Followers",
@@ -21,7 +21,7 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
     },
     {
       $lookup: {
-        from: "follower",
+        from: "Follower",
         localField: "_id",
         foreignField: "following",
         as: "Following",
