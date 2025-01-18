@@ -14,5 +14,7 @@ const requestSchema = new mongoose.Schema({
         enum : ["pending" , "accepted" , "rejected"],
         default : "pending"
     },
-    
+
 } , {timestamps : true})
+
+export const Request = mongoose.model('request' , requestSchema)
