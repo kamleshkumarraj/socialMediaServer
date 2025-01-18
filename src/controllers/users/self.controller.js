@@ -87,3 +87,20 @@ export const updateBioAvatar = asyncErrorHandler(async (req, res, next) => {
 
     sendResponse({res , status : 200 , data : bio , message : 'User bio avatar updated successfully !'})
 })
+
+export const updatePassword = asyncErrorHandler(async (req, res, next) => {
+    
+
+    const {password , confirmPassword , oldPassword} = req.body;
+
+    const user = await users.findById(req.user.id).select("+password");
+    
+    //first check old password is correct or not.   
+    if(!(await user.passwordCompare(oldPassword))) return next(new ErrorHandler("Old password is not correct !" , 400))
+
+    // now we update the password.
+    user.password = password;
+    await user.save({validateBeforeSave : false});
+
+    sendResponse({res , status : 200 , data : user , message : 'User password updated successfully !'})
+} )
