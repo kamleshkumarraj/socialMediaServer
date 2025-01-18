@@ -1,3 +1,4 @@
+import { isValidObjectId } from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 import { Posts } from "../../models/posts.models.js";
@@ -18,4 +19,24 @@ export const createPost = asyncErrorHandler(async (req, res, next) => {
   await removeFile({files : [imageFile]})
 
   sendResponse({res , status : 201 , data : post , message : 'Post created successfully !'})
+})
+
+export const deletePost = asyncErrorHandler(async (req, res, next) => {
+  const postId = req.params.id;
+  // check given post id is valid or not.
+  if(isValidObjectId(postId)) return next(new ErrorHandler("please send valid post id !",404))
+
+  const post = await Posts.findById(postId);
+  if(!post) return next(new ErrorHandler("please send valid post id !",404))
+
+  // check given post is created by logged in user or not.
+  if(post.creator.toString() !== req.user.id) return next(new ErrorHandler("you are not allowed to delete this post !",403))
+
+  const {success , error} = await removeMultipleFileFromCloudinary({files : [post.images]})
+  if(!success) return next(new ErrorHandler(error.message || "Error while deleting the post !" , 400))
+
+  await Posts.findByIdAndDelete(postId);
+
+  sendResponse({res , status : 200 , data : null , message : 'Post deleted successfully !'})
+
 })
