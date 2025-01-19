@@ -149,3 +149,21 @@ export const removeGroupMember = asyncErrorHandler(async (req, res, next) => {
     sendResponse({res , status : 200 , data : null , message : 'Member removed from group chat successfully !'})
 
 })
+
+export const addMemberInGroupChat = asyncErrorHandler(async (req, res, next) => {
+    const chatId = req.params.id;
+    const memberId = req.req.body;
+
+    const chat = await Chats.findById(chatId);
+
+    if(chat.groupChat === false) return next(new ErrorHandler('You can not add member to private chat !' , 400));
+
+    if(chat.creator.toString() !== req.user.id.toString()) return next(new ErrorHandler('Only admin can add member to group chat !' , 400))
+
+    if(chat.members.length+memberId.length > 100) return next(new ErrorHandler('You can not add more than 100 members in group chat !' , 400))
+
+    chat.members = [...chat.members , ...memberId]
+    await chat.save({validateBeforeSave : false})
+    sendResponse({res , status : 200 , data : null , message : 'Member added to group chat successfully !'})
+})
+
