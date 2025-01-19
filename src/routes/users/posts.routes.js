@@ -15,7 +15,6 @@ import {
 
 export const postsRouter = Router();
 
-postsRouter.use(isLoggedIn);
 postsRouter
   .route("/create")
   .post(

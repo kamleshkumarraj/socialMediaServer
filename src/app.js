@@ -28,7 +28,7 @@ app.use('/api/v1/auth' , authRouter)
 
 // now we handle user related routes.
 app.use('/api/v1/user/post' , postsRouter)
-
+app.use('/api/v1/user/chat' , )
 
 app.use(async (err , req , res , next) => {
     if(req.file) await removeFile({files : [req.file]})
