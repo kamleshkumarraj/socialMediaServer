@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { Chats } from "../../models/chat.models.js";
 import { sendResponse } from "../../utils/sendResponse.js";
@@ -89,4 +90,25 @@ export const getMyCreatedChats = asyncErrorHandler(async (req, res, next) => {
         avatar : chat.groupChat ?  chat?.members?.map(member => member?.avatar?.url) : secondMember(chat.members)?.avatar?.url,
         member : chat.members
     })) 
+});
+
+export const leaveGroupChat = asyncErrorHandler(async (req, res, next) => {
+    const chatId = req.params.id 
+
+    // check sending groupChat id is valid or not.
+    if(mongoose.isValidObjectId(chatId) === false) return next(new ErrorHandler('Please send valid chat id !' , 400))
+
+    const chat = await Chats.findById(chatId);
+
+    if(chat.groupChat === false) return next(new ErrorHandler('You can not leave private chat !' , 400));
+
+    if(chat.members.length < 3) return next(new ErrorHandler('You can not leave group chat because it should have atleast 3 members !' , 400))
+
+    chat.members = chat.members.filter(member => member.toString() !== req.user.id.toString())
+
+    if(chat.creator.toString() === req.user.id.toString()) chat.creator = chat.members[0];
+
+    await chat.save();
+
+    sendResponse({res , status : 200 , data : null , message : 'Group chat left successfully !'})
 })
