@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { Chats } from "../../models/chat.models.js";
 import { sendResponse } from "../../utils/sendResponse.js";
+import { Messages } from "../../models/messages.models.js";
 
 export const createGroupChat = asyncErrorHandler(async (req, res, next) => {
   const { sendMembers = [], creator, chatName } = req.body;
@@ -167,3 +168,20 @@ export const addMemberInGroupChat = asyncErrorHandler(async (req, res, next) => 
     sendResponse({res , status : 200 , data : null , message : 'Member added to group chat successfully !'})
 })
 
+export const deleteChats = asyncErrorHandler(async (req, res, next) => {
+  const chatId = req.params.id;
+  if(mongoose.isValidObjectId(chatId) === false) return next(new ErrorHandler('Please send valid chat id !' , 400))
+
+  const chat = await Chats.findById(chatId);
+  if(chat.groupChat){
+    if(chat.creator.toString() !== req.user.id.toString()) return next(new ErrorHandler('Only admin can delete group chat !' , 400));
+
+    const messages = await Messages.find({chatId : chatId});
+
+    if(messages.length > 0 ){
+      dele
+    }
+  }
+
+
+})

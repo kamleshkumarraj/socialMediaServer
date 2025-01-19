@@ -62,3 +62,19 @@ export const deleteMessage = asyncErrorHandler(async (req, res, next) => {
 
     
 })
+
+export const deleteMultipleMessage = asyncErrorHandler(async (req, res, next) => {
+    const messagesId = req.body;
+    const messages = await Messages.find({_id : {$in : messagesId}});
+
+    if(messages.length > 0){
+        const attachments = messages.flatMap(message => message.attachments);
+        const {success , error} = await removeMultipleFileFromCloudinary({files : attachments})
+
+        if(!success) return next(new ErrorHandler(error.message || 'Error while deleting the attachments !' , 400))
+    }
+
+    await Messages.deleteMany({_id : {$in : messagesId}});
+
+    sendResponse({res , status : 200 , data : null , message : 'Messages deleted successfully !'})
+})
