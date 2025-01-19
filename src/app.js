@@ -7,6 +7,7 @@ import { removeFile } from './utils/cloudinary.utils.js';
 import { chatsRouter } from './routes/users/chats.routes.js';
 import { messageRouter } from './routes/users/message.routes.js';
 import { reactionsRouter } from './routes/users/reactions.routes.js';
+import { isLoggedIn } from './middlewares/auth/isLoggedIn.middleware.js';
 
 export const app = express();
 
@@ -28,6 +29,8 @@ app.use(express.json({
 
 //now we handle routes related from authentication.
 app.use('/api/v1/auth' , authRouter)
+
+app.use(isLoggedIn)
 
 // now we handle user related routes.
 app.use('/api/v1/user/post' , postsRouter)

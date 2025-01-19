@@ -4,25 +4,26 @@ import { Chats } from "../../models/chat.models.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { Messages } from "../../models/messages.models.js";
 import { removeMultipleFileFromCloudinary } from "../../utils/cloudinary.utils.js";
+import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 
 export const createGroupChat = asyncErrorHandler(async (req, res, next) => {
-  const { sendMembers = [], creator, chatName } = req.body;
+  const { sendMembers = [], creator = req.user.id, chatName } = req.body;
 
-  const members = Set(sendMembers);
-
+  const members = new Set(sendMembers);
+  
   if (creator != req.user.id.toString())
     return next(
       new ErrorHandler("You are not allowed to create group chat !", 400)
     );
 
-  if (!members.includes(creator)) members.push(req.user.id);
+  if (!members.has(creator.toString())) members.add(req.user.id);
 
-  if (members.length < 3)
+  if (members.size < 3)
     return next(
       new ErrorHandler("Group chat should have atleast 3 members !", 400)
     );
-
-  await Chats.create({ chatname: chatName, members, creator, groupChat: true });
+  
+  await Chats.create({ chatname: chatName, members : Array.from(members), creator, groupChat: true });
 
   sendResponse({
     res,

@@ -12,6 +12,7 @@ import {
 } from "../../controllers/users/chat.controller.js";
 
 export const chatsRouter = Router();
+
 chatsRouter.route("/create-group").post(createGroupChat);
 chatsRouter.route("/delete-chat/:id").delete(deleteChats);
 chatsRouter.route("/add-member/:id").post(addMemberInGroupChat);
