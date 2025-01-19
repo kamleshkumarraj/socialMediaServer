@@ -112,3 +112,19 @@ export const leaveGroupChat = asyncErrorHandler(async (req, res, next) => {
 
     sendResponse({res , status : 200 , data : null , message : 'Group chat left successfully !'})
 })
+
+export const renameGroupName = asyncErrorHandler(async (req, res, next) => {
+    const chatId = req.params.id
+    
+    const chat = await Chats.findById(chatId);
+
+    if(chat.groupChat === false) return next(new ErrorHandler('You can not rename private chat !' , 400));
+
+    if(chat.creator.toString !== req.user.id.toString()) return next(new ErrorHandler('Only admin can change group chat name !' , 400))
+
+    chat.chatname = req.body.chatName;
+
+    await chat.save({validateBeforeSave : false})
+
+    sendResponse({res , status : 200 , data : null , message : 'Group chat name changed successfully !'})
+})
