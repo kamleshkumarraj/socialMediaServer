@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const chatSchema = new mongoose.Schema({
     members : [{
         type : mongoose.Schema.Types.ObjectId,
-        ref : "user"
+        ref : "User"
     }],
     groupChat : {
         type : Boolean,
@@ -11,7 +11,7 @@ const chatSchema = new mongoose.Schema({
     },
     creator : {
         type : mongoose.Schema.Types.ObjectId,
-        ref : "user"
+        ref : "User"
     },
     chatname : {
         type : String,
