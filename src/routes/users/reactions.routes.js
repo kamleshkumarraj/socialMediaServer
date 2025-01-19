@@ -10,7 +10,7 @@ import {
 
 export const reactionsRouter = Router();
 
-reactionsRouter.route("/create-like/:id").post(createReactions);
+reactionsRouter.route("/create-reaction/:id").post(createReactions);
 reactionsRouter.route("/create-comment/:id").post(createComment);
 reactionsRouter.route("/delete-comment/:id").post(deleteComment);
 reactionsRouter.route("/create-share/:id").post(createShare);

@@ -39,7 +39,6 @@ app.use('/api/v1/user/message' , messageRouter)
 app.use('/api/v1/user/reaction' , reactionsRouter)
 
 app.use(async (err , req , res , next) => {
-    if(req.file) await removeFile({files : [req.file]})
     err.message = err.message || "Internal Server Error",
     err.status = err.status || 500
 

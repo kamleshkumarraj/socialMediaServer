@@ -85,7 +85,7 @@ export const createComment = asyncErrorHandler(async (req, res, next) => {
 
   const existComment = await Comments.findOne({
     creator: req.user.id,
-    post: postId,
+    postId: postId,
   });
 
   if (existComment) {
@@ -101,7 +101,7 @@ export const createComment = asyncErrorHandler(async (req, res, next) => {
     await Comments.create({
       creator: req.user.id,
       comment: { content: commentMessage, reply: [], like: [] },
-      post: postId,
+      postId: postId,
     });
   }
 
@@ -147,15 +147,17 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
   if (mongoose.isValidObjectId(commentId) == false)
     return next(new ErrorHandler("Please send valid comment id !", 400));
 
-  const comment = await Comments.findById(commentId);
+  const existLike = await Comments.findOne({
+    _id: commentId,
+    comment: {
+      $elemMatch: {
+        _id: innerCommentId,
+        like: { $elemMatch: { creator: req.user.id } },
+      },
+    },
+  });
 
-  if (
-    comment.comment.find((comm) => {
-      return comm.like.find((like) => {
-        return like.creator.toString() == req.user.id.toString();
-      });
-    })
-  ) {
+  if (existLike) {
     await Comments.updateOne(
       {
         _id: commentId,
@@ -167,7 +169,10 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
         },
       },
       {
-        $set: { "comment.$.like.$.likeType": likeType },
+        $set: { "comment.$.like.$[innerReply].likeType": likeType },
+      },
+      {
+        arrayFilters: [{ "innerReply.creator": req.user.id }],
       }
     );
   } else {
@@ -180,28 +185,66 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
       }
     );
   }
+
+  sendResponse({
+    res,
+    data: null,
+    message: "Like created successfully !",
+    status: 200,
+  });
 });
 
 export const replyComment = asyncErrorHandler(async (req, res, next) => {
-    const { commentMessage } = req.body;
-    const commentId = req.params.id;
-    const innerCommentId = req.body.innerCommentId;
+  const { commentMessage, innerCommentId } = req.body;
+  const commentId = req.params.id;
+  if (mongoose.isValidObjectId(commentId) == false)
+    return next(new ErrorHandler("Please send valid comment id !", 400));
 
-    const comments = await Comments.findById(commentId);
+  if (!commentMessage || !innerCommentId)
+    return next(
+      new ErrorHandler(
+        "Please send comment message and inner comment id !",
+        400
+      )
+    );
 
-    if(comments.comment.find((com) => {
-        return com.reply.find((rep) => {
-            return rep.creator.toString() == req.user.id.toString();
-        })
-    })){
-        await Comments.updateOne(
-            {_id : commentId , comment : {$elemMatch : {_id : innerCommentId , reply : {$elemMatch : {creator : req.user.id}}}}},
-            {$set : {$push : {"comment.$.reply.$.replyContent" : commentMessage}}}
-        )
-    }else{
-        await Comments.updateOne(
-            {_id : commentId , "comment._id" : innerCommentId},
-            {$push : {"comment.$.reply" : {creator : req.user.id , replyContent : commentMessage}}}
-        )
-    }
-})
+  const alreadyReplied = await Comments.findOne({_id : commentId , comment : {$elemMatch : {_id : innerCommentId , reply : {$elemMatch : {creator : req.user.id}}}}})
+
+  if (alreadyReplied) {
+    await Comments.updateOne(
+      {
+        _id: commentId,
+        comment: {
+          $elemMatch: {
+            _id: innerCommentId,
+            reply: { $elemMatch: { creator: req.user.id } },
+          },
+        },
+      },
+      {
+        $push: { "comment.$.reply.$[innerReply].replyComment": commentMessage },
+      },
+      {
+        arrayFilters: [{ "innerReply.creator": req.user.id }],
+      }
+    );
+  } else {
+    await Comments.updateOne(
+      { _id: commentId, "comment._id": innerCommentId },
+      {
+        $push: {
+          "comment.$.reply": {
+            creator: req.user.id,
+            replyComment: commentMessage,
+          },
+        },
+      }
+    );
+  }
+  sendResponse({
+    res,
+    data: null,
+    message: "Reply created successfully !",
+    status: 200,
+  });
+});
