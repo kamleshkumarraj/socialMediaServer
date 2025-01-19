@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   deleteMultipleMessage,
   sendAttachment,
-} from "../../controllers/users/message.controller";
+} from "../../controllers/users/message.controller.js";
 
 export const messageRouter = Router();
 

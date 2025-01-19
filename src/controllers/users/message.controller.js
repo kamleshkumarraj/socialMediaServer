@@ -2,80 +2,144 @@ import mongoose from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 import { Messages } from "../../models/messages.models.js";
-import { removeFile, removeMultipleFileFromCloudinary, uploadFilesOnCloudinary } from "../../utils/cloudinary.utils";
+import {
+  removeFile,
+  removeMultipleFileFromCloudinary,
+  uploadFilesOnCloudinary,
+} from "../../utils/cloudinary.utils.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 
 export const createMessage = asyncErrorHandler(async (req, res, next) => {
-    const {chatId , content , attachments = [] , members = []} = req.body;
-    
-    const sendingMembers = members.filter(member => member.toString() !== req.user.id.toString()) 
+  const { chatId, content, attachments = [], members = [] } = req.body;
 
-    await Messages.create({chatId , sender : req.user.id , receiver : sendingMembers , content , attachments})
+  const sendingMembers = members.filter(
+    (member) => member.toString() !== req.user.id.toString()
+  );
 
-    sendResponse({res , status : 200 , data : null , message : 'Message sent successfully !'})
-})
+  await Messages.create({
+    chatId,
+    sender: req.user.id,
+    receiver: sendingMembers,
+    content,
+    attachments,
+  });
+
+  sendResponse({
+    res,
+    status: 200,
+    data: null,
+    message: "Message sent successfully !",
+  });
+});
 
 export const sendAttachment = asyncErrorHandler(async (req, res, next) => {
-    const {chatId , members = [], content} = req.body;
+  const { chatId, members = [], content } = req.body;
 
-    const attachmentsFile = req.files || [];
+  const attachmentsFile = req.files || [];
 
-    if(attachments.length < 1 && attachments.length > 5) return next(new ErrorHandler("You can not send more than 5 attachments less than 1 attachments !",400))
+  if (attachments.length < 1 && attachments.length > 5)
+    return next(
+      new ErrorHandler(
+        "You can not send more than 5 attachments less than 1 attachments !",
+        400
+      )
+    );
 
-    
-    const {success, results, error} = await uploadFilesOnCloudinary({files : attachmentsFile})
-    if(!success) return next(new ErrorHandler(error.message || "Error while uploading the attachments !",400))
+  const { success, results, error } = await uploadFilesOnCloudinary({
+    files: attachmentsFile,
+  });
+  if (!success)
+    return next(
+      new ErrorHandler(
+        error.message || "Error while uploading the attachments !",
+        400
+      )
+    );
 
-    const attachmentForDB = results.map(result => ({publicIid : result.public_id , url : result.url}))
+  const attachmentForDB = results.map((result) => ({
+    publicIid: result.public_id,
+    url: result.url,
+  }));
 
-    const dbMessage = {
-        chatId : chatId,
-        sender : req.user.id,
-        receiver : members,
-        content : content,
-        attachments : attachmentForDB
-    }
+  const dbMessage = {
+    chatId: chatId,
+    sender: req.user.id,
+    receiver: members,
+    content: content,
+    attachments: attachmentForDB,
+  };
 
-    const messageWithAttachment = await Messages.create(dbMessage);
-    await removeFile({files : attachmentsFile})
+  const messageWithAttachment = await Messages.create(dbMessage);
+  await removeFile({ files: attachmentsFile });
 
-    sendResponse({res , status : 200 , data : messageWithAttachment , message : 'Message sent successfully !'})
-})
+  sendResponse({
+    res,
+    status: 200,
+    data: messageWithAttachment,
+    message: "Message sent successfully !",
+  });
+});
 
 export const deleteMessage = asyncErrorHandler(async (req, res, next) => {
-    const messageId = req.params.id;
+  const messageId = req.params.id;
 
-    if(mongoose.isValidObjectId(messageId) == false) return next(new ErrorHandler('Please send valid message id !' , 400))
+  if (mongoose.isValidObjectId(messageId) == false)
+    return next(new ErrorHandler("Please send valid message id !", 400));
 
-    const message = await Messages.findById(messageId);
+  const message = await Messages.findById(messageId);
 
-    if(message.attachments.length > 0){
-        const attachments = message.attachments;
-        const {success , error} = await removeMultipleFileFromCloudinary({files : attachments})
+  if (message.attachments.length > 0) {
+    const attachments = message.attachments;
+    const { success, error } = await removeMultipleFileFromCloudinary({
+      files: attachments,
+    });
 
-        if(!success) return next(new ErrorHandler(error.message || 'Error while deleting the attachments !' , 400))
-    }
+    if (!success)
+      return next(
+        new ErrorHandler(
+          error.message || "Error while deleting the attachments !",
+          400
+        )
+      );
+  }
 
-    await Messages.findByIdAndDelete(messageId);
+  await Messages.findByIdAndDelete(messageId);
 
-    sendResponse({res , status : 200 , data : null , message : 'Message deleted successfully !'})
+  sendResponse({
+    res,
+    status: 200,
+    data: null,
+    message: "Message deleted successfully !",
+  });
+});
 
-    
-})
-
-export const deleteMultipleMessage = asyncErrorHandler(async (req, res, next) => {
+export const deleteMultipleMessage = asyncErrorHandler(
+  async (req, res, next) => {
     const messagesId = req.body || [];
-    const messages = await Messages.find({_id : {$in : messagesId}});
+    const messages = await Messages.find({ _id: { $in: messagesId } });
 
-    if(messages.length > 0){
-        const attachments = messages.flatMap(message => message.attachments);
-        const {success , error} = await removeMultipleFileFromCloudinary({files : attachments})
+    if (messages.length > 0) {
+      const attachments = messages.flatMap((message) => message.attachments);
+      const { success, error } = await removeMultipleFileFromCloudinary({
+        files: attachments,
+      });
 
-        if(!success) return next(new ErrorHandler(error.message || 'Error while deleting the attachments !' , 400))
+      if (!success)
+        return next(
+          new ErrorHandler(
+            error.message || "Error while deleting the attachments !",
+            400
+          )
+        );
     }
 
-    await Messages.deleteMany({_id : {$in : messagesId}});
+    await Messages.deleteMany({ _id: { $in: messagesId } });
 
-    sendResponse({res , status : 200 , data : null , message : 'Messages deleted successfully !'})
-})
-
+    sendResponse({
+      res,
+      status: 200,
+      data: null,
+      message: "Messages deleted successfully !",
+    });
+  }
+);

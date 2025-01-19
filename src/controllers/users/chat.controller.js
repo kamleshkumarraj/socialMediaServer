@@ -253,32 +253,33 @@ export const deleteChats = asyncErrorHandler(async (req, res, next) => {
       return next(new ErrorHandler("Only admin can delete group chat !", 400));
   }
 
-    const messages = await Messages.find({ chatId: chatId });
+  const messages = await Messages.find({ chatId: chatId });
 
-    if (messages.length > 0) {
-      const attachments = messages.flatMap((message) => message.attachments);
-      if (attachments.length > 0) {
-        const { success, error } = await removeMultipleFileFromCloudinary({
-          files: attachments,
-        });
+  if (messages.length > 0) {
+    const attachments = messages.flatMap((message) => message.attachments);
+    if (attachments.length > 0) {
+      const { success, error } = await removeMultipleFileFromCloudinary({
+        files: attachments,
+      });
 
-        if (!success)
-          return next(
-            new ErrorHandler(
-              error.message || "Error while deleting the attachments !",
-              400
-            )
-          );
-      }
-      await Messages.deleteMany({_id : {$in : messages.map(message => message._id)}})
+      if (!success)
+        return next(
+          new ErrorHandler(
+            error.message || "Error while deleting the attachments !",
+            400
+          )
+        );
     }
-
-    await Chats.findByIdAndDelete(chatId);
-    sendResponse({
-      res,
-      status: 200,
-      data: null,
-      message: "Chat deleted successfully !",
+    await Messages.deleteMany({
+      _id: { $in: messages.map((message) => message._id) },
     });
   }
-);
+
+  await Chats.findByIdAndDelete(chatId);
+  sendResponse({
+    res,
+    status: 200,
+    data: null,
+    message: "Chat deleted successfully !",
+  });
+});
