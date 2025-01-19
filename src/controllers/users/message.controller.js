@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 import { Messages } from "../../models/messages.models.js";
-import { removeFile, uploadFilesOnCloudinary } from "../../utils/cloudinary.utils";
+import { removeFile, removeMultipleFileFromCloudinary, uploadFilesOnCloudinary } from "../../utils/cloudinary.utils";
 import { sendResponse } from "../../utils/sendResponse.js";
 
 export const createMessage = asyncErrorHandler(async (req, res, next) => {
@@ -45,5 +45,20 @@ export const sendAttachment = asyncErrorHandler(async (req, res, next) => {
 export const deleteMessage = asyncErrorHandler(async (req, res, next) => {
     const messageId = req.params.id;
 
-    if(mongoose.isValidObjectId(message))
+    if(mongoose.isValidObjectId(messageId) == false) return next(new ErrorHandler('Please send valid message id !' , 400))
+
+    const message = await Messages.findById(messageId);
+
+    if(message.attachments.length > 0){
+        const attachments = message.attachments;
+        const {success , error} = await removeMultipleFileFromCloudinary({files : attachments})
+
+        if(!success) return next(new ErrorHandler(error.message || 'Error while deleting the attachments !' , 400))
+    }
+
+    await Messages.findByIdAndDelete(messageId);
+
+    sendResponse({res , status : 200 , data : null , message : 'Message deleted successfully !'})
+
+    
 })
