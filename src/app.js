@@ -4,6 +4,9 @@ import cors from 'cors'
 import { authRouter } from './routes/auth/auth.routes.js';
 import { postsRouter } from './routes/users/posts.routes.js';
 import { removeFile } from './utils/cloudinary.utils.js';
+import { chatsRouter } from './routes/users/chats.routes.js';
+import { messageRouter } from './routes/users/message.routes.js';
+import { reactionsRouter } from './routes/users/reactions.routes.js';
 
 export const app = express();
 
@@ -28,7 +31,9 @@ app.use('/api/v1/auth' , authRouter)
 
 // now we handle user related routes.
 app.use('/api/v1/user/post' , postsRouter)
-app.use('/api/v1/user/chat' , )
+app.use('/api/v1/user/chat' , chatsRouter)
+app.use('/api/v1/user/message' , messageRouter)
+app.use('/api/v1/user/reaction' , reactionsRouter)
 
 app.use(async (err , req , res , next) => {
     if(req.file) await removeFile({files : [req.file]})

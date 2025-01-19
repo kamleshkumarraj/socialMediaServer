@@ -2,7 +2,7 @@ import { Router } from "express";
 import { addMemberInGroupChat, createGroupChat, deleteChats, getMyChats, getMyCreatedChats, getMyGroupChats, leaveGroupChat, removeGroupMember, renameGroupName } from "../../controllers/users/chat.controller.js";
 import { isLoggedIn } from "../../middlewares/auth/isLoggedIn.middleware";
 
-const chatsRouter = Router();
+export const chatsRouter = Router();
 
 chatsRouter.use(isLoggedIn)
 chatsRouter.route('/create-group').post(createGroupChat)

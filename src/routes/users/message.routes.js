@@ -4,7 +4,7 @@ import {
   sendAttachment,
 } from "../../controllers/users/message.controller";
 
-const messageRouter = Router();
+export const messageRouter = Router();
 
 messageRouter.route("/send-attachment").post(sendAttachment);
 messageRouter.route("/delete-message/:id").delete(deleteMultipleMessage);
