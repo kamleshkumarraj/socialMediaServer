@@ -128,3 +128,24 @@ export const renameGroupName = asyncErrorHandler(async (req, res, next) => {
 
     sendResponse({res , status : 200 , data : null , message : 'Group chat name changed successfully !'})
 })
+
+export const removeGroupMember = asyncErrorHandler(async (req, res, next) => {
+    const chatId = req.params.id;
+    const memberId = req.req.body;
+
+    // check sending groupChat id is valid or not.
+    if(mongoose.isValidObjectId(chatId) === false) return next(new ErrorHandler('Please send valid chat id !' , 400))    
+
+    const chat = await Chats.findById(chatId);
+
+    if(chat.groupChat === false) return next(new ErrorHandler('You can not remove member from private chat !' , 400));
+
+    if(chat.creator.toString() !== req.user.id.toString()) return next(new ErrorHandler('Only admin can remove member from group chat !' , 400))
+
+    chat.members = chat.members.filter(member => member.toString() !== memberId.toString())
+
+    await chat.save({validateBeforeSave : false})
+
+    sendResponse({res , status : 200 , data : null , message : 'Member removed from group chat successfully !'})
+
+})
