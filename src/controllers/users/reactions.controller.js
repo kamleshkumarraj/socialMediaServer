@@ -181,3 +181,27 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
     );
   }
 });
+
+export const replyComment = asyncErrorHandler(async (req, res, next) => {
+    const { commentMessage } = req.body;
+    const commentId = req.params.id;
+    const innerCommentId = req.body.innerCommentId;
+
+    const comments = await Comments.findById(commentId);
+
+    if(comments.comment.find((com) => {
+        return com.reply.find((rep) => {
+            return rep.creator.toString() == req.user.id.toString();
+        })
+    })){
+        await Comments.updateOne(
+            {_id : commentId , comment : {$elemMatch : {_id : innerCommentId , reply : {$elemMatch : {creator : req.user.id}}}}},
+            {$set : {$push : {"comment.$.reply.$.replyContent" : commentMessage}}}
+        )
+    }else{
+        await Comments.updateOne(
+            {_id : commentId , "comment._id" : innerCommentId},
+            {$push : {"comment.$.reply" : {creator : req.user.id , replyContent : commentMessage}}}
+        )
+    }
+})
