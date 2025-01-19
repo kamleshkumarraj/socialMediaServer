@@ -17,3 +17,10 @@ export const createGroupChat = asyncErrorHandler(async (req, res, next) => {
 
     sendResponse({res , status : 201 , data : null , message : 'Group chat created successfully !'})
 })
+
+export const getMyChats = asyncErrorHandler(async (req, res, next) => {
+    const myChats = await Chats.find({members : {$in : [req.user.id.toString()]}});
+
+    sendResponse({res , status : 200 , data : myChats , message : 'My chats fetched successfully !'})
+})
+
