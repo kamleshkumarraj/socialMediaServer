@@ -29,6 +29,10 @@ const postSchema = new mongoose.Schema({
         creator : {
             type : mongoose.Schema.Types.ObjectId,
             ref : "user"
+        },
+        count : {
+            type : Number,
+            default : 1
         }
     }],
     comments : {

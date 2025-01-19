@@ -17,6 +17,17 @@ const commentSchema = new mongoose.Schema({
                 ref : "user"
             },
             replyComment : []
+        }],
+        like : [{
+            creator : {
+                type : mongoose.Schema.Types.ObjectId,
+                ref : "user"
+            },
+            likeType : {
+                type : String,
+                enum : ["like" , "dislike" , "none"],
+                default : "none"
+            }
         }]
     }],
     postId : {
