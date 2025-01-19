@@ -77,3 +77,16 @@ export const getMyChats = asyncErrorHandler(async (req, res, next) => {
 
   sendResponse({res , data : transformData , status : 200 , message : 'My chats fetched successfully !'})
 });
+
+export const getMyCreatedChats = asyncErrorHandler(async (req, res, next) => {
+    const myChats = await Chats.find({creator : req.user.id}).populate('members' , 'firstname lastname avatar');
+    const secondMember = (chat) => chat.members.find(member => member._id.toString() != req.user.id.toString())
+    const transformData = myChats.map(chat => ({
+        _id : chat._id,
+        chatName : chat.groupChat ? chat.chatname : secondMember()?.firstname + " " + secondMember()?.lastname,
+        groupChat : chat.groupChat,
+        creator : chat.creator,
+        avatar : chat.groupChat ?  chat?.members?.map(member => member?.avatar?.url) : secondMember(chat.members)?.avatar?.url,
+        member : chat.members
+    })) 
+})
