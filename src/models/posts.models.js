@@ -19,22 +19,12 @@ const postSchema = new mongoose.Schema({
             },
             reactionType : {
                 type : String,
-                enum : ["like" , "love" , "haha" , "wow" , "sad" , "angry" , "none"],
+                enum : ["like" , "love" , "haha" , "wow" , "sad" , "angry","none"],
                 default : "none"
             }
         }
     ],
-    likes : [{
-        creator : {
-            type : mongoose.Schema.Types.ObjectId,
-            ref : "user"
-        },
-        reaction : {
-            type : String,
-            enum : ["like" , "unlike" , "dislike"],
-            default : "unlike"
-        }
-    }],
+    
     shares : [{
         creator : {
             type : mongoose.Schema.Types.ObjectId,
@@ -60,7 +50,14 @@ const postSchema = new mongoose.Schema({
         enum : ["public" , "private"],
         default : "public"
     },
-    savePost : []
+    views : [{
+        creator : {
+            type : mongoose.Schema.Types.ObjectId,
+            ref : "User"
+        }
+    }]
+
+    
 },{timestamps : true})
 
 

@@ -8,6 +8,7 @@ import {
 } from "../../utils/cloudinary.utils.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 
+//this function act as helper function for find post query
 const findPostQuery = ({match , limit , skip}) => {
   return [
       {
