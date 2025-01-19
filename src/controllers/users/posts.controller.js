@@ -1,4 +1,4 @@
-import { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 import { Posts } from "../../models/posts.models.js";
@@ -7,6 +7,69 @@ import {
   uploadFilesOnCloudinary,
 } from "../../utils/cloudinary.utils.js";
 import { sendResponse } from "../../utils/sendResponse.js";
+
+const findPostQuery = ({match , limit , skip}) => {
+  return [
+      {
+        $match: {
+          ...match
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "creator",
+          foreignField: "_id",
+          as: "creatorDetails",
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                creatorName: { $concat: ["$firstname", " ", "$lastname"] },
+                username: 1,
+                avatar: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "comments",
+          localField: "_id",
+          foreignField: "postId",
+          as: "comments",
+        },
+      },
+      {
+        $unwind: "$creatorDetails",
+      },
+      {
+        $project: {
+          comments: 1,
+          creatorDetails: 1,
+          content: 1,
+          _id: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          images: 1,
+          like: 1,
+          share: 1,
+        },
+      },
+      {
+        $skip : skip
+      },
+      {
+        $limit : limit
+      },
+      {
+        $sort : {
+          createdAt : -1
+        }
+      }
+    ]
+}
 
 export const createPost = asyncErrorHandler(async (req, res, next) => {
   console.log("Create post is running !");
@@ -78,14 +141,16 @@ export const deletePost = asyncErrorHandler(async (req, res, next) => {
 });
 
 export const getMyPost = asyncErrorHandler(async (req, res, next) => {
-  const myPost = await Posts.find({ creator: req.user.id }).sort({
-    createdAt: -1,
-  });
+  const { page = 1, limit = 20 } = req.params;
+  const skip = (page - 1) * limit;
+  const myPosts = await Posts.aggregate(
+    findPostQuery({match : {creator : new mongoose.Types.ObjectId(req?.user?.id)}, limit , skip})
+);
 
   sendResponse({
     res,
     status: 200,
-    data: myPost,
+    data: myPosts,
     message: "Posts fetched successfully !",
   });
 });
@@ -93,15 +158,15 @@ export const getMyPost = asyncErrorHandler(async (req, res, next) => {
 export const getAllPost = asyncErrorHandler(async (req, res, next) => {
   const { page = 1, limit = 20 } = req.params;
   const skip = (page - 1) * limit;
-  const allPost = await Posts.find()
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+  const allPosts = await Posts.aggregate(
+    findPostQuery({match : {} , skip : skip , limit : limit}),
+  )
+    ;
 
   sendResponse({
     res,
     status: 200,
-    data: allPost,
+    data: allPosts,
     message: "Posts fetched successfully !",
   });
 });
@@ -109,11 +174,11 @@ export const getAllPost = asyncErrorHandler(async (req, res, next) => {
 export const getSinglePost = asyncErrorHandler(async (req, res, next) => {
   const postId = req.params.id;
   // check given post id is valid or not.
-  if (isValidObjectId(postId))
+  if (!isValidObjectId(postId))
     return next(new ErrorHandler("please send valid post id !", 404));
 
-  const post = await Posts.findById(postId);
-  if (!post) return next(new ErrorHandler("please send valid post id !", 404));
+  const post = await Posts.aggregate(
+    findPostQuery({match : {_id : new mongoose.Types.ObjectId(postId)} , skip : 0, limit : 1}));
 
   sendResponse({
     res,
@@ -121,4 +186,4 @@ export const getSinglePost = asyncErrorHandler(async (req, res, next) => {
     data: post,
     message: "Post fetched successfully !",
   });
-})
+});

@@ -18,7 +18,11 @@ const commentSchema = new mongoose.Schema({
             },
             replyComment : []
         }]
-    }]
-})
+    }],
+    postId : {
+        type : mongoose.Schema.Types.ObjectId,
+        ref : "Posts"
+    }
+}, {timestamps : true})
 
 export const Comments = mongoose.model('Comment' , commentSchema) 
