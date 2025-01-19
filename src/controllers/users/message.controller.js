@@ -64,7 +64,7 @@ export const deleteMessage = asyncErrorHandler(async (req, res, next) => {
 })
 
 export const deleteMultipleMessage = asyncErrorHandler(async (req, res, next) => {
-    const messagesId = req.body;
+    const messagesId = req.body || [];
     const messages = await Messages.find({_id : {$in : messagesId}});
 
     if(messages.length > 0){

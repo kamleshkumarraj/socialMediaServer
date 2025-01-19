@@ -3,6 +3,7 @@ import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { Chats } from "../../models/chat.models.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { Messages } from "../../models/messages.models.js";
+import { removeMultipleFileFromCloudinary } from "../../utils/cloudinary.utils.js";
 
 export const createGroupChat = asyncErrorHandler(async (req, res, next) => {
   const { sendMembers = [], creator, chatName } = req.body;
@@ -73,115 +74,211 @@ export const getMyChats = asyncErrorHandler(async (req, res, next) => {
       groupChat: false,
       creator: chat.creator,
       avatar: secondMember?.avatar?.url,
-      member : chat.members
+      member: chat.members,
     };
   });
 
-  sendResponse({res , data : transformData , status : 200 , message : 'My chats fetched successfully !'})
+  sendResponse({
+    res,
+    data: transformData,
+    status: 200,
+    message: "My chats fetched successfully !",
+  });
 });
 
 export const getMyCreatedChats = asyncErrorHandler(async (req, res, next) => {
-    const myChats = await Chats.find({creator : req.user.id}).populate('members' , 'firstname lastname avatar');
-    const secondMember = (chat) => chat.members.find(member => member._id.toString() != req.user.id.toString())
-    const transformData = myChats.map(chat => ({
-        _id : chat._id,
-        chatName : chat.groupChat ? chat.chatname : secondMember()?.firstname + " " + secondMember()?.lastname,
-        groupChat : chat.groupChat,
-        creator : chat.creator,
-        avatar : chat.groupChat ?  chat?.members?.map(member => member?.avatar?.url) : secondMember(chat.members)?.avatar?.url,
-        member : chat.members
-    })) 
+  const myChats = await Chats.find({ creator: req.user.id }).populate(
+    "members",
+    "firstname lastname avatar"
+  );
+  const secondMember = (chat) =>
+    chat.members.find(
+      (member) => member._id.toString() != req.user.id.toString()
+    );
+  const transformData = myChats.map((chat) => ({
+    _id: chat._id,
+    chatName: chat.groupChat
+      ? chat.chatname
+      : secondMember()?.firstname + " " + secondMember()?.lastname,
+    groupChat: chat.groupChat,
+    creator: chat.creator,
+    avatar: chat.groupChat
+      ? chat?.members?.map((member) => member?.avatar?.url)
+      : secondMember(chat.members)?.avatar?.url,
+    member: chat.members,
+  }));
 });
 
 export const leaveGroupChat = asyncErrorHandler(async (req, res, next) => {
-    const chatId = req.params.id 
+  const chatId = req.params.id;
 
-    // check sending groupChat id is valid or not.
-    if(mongoose.isValidObjectId(chatId) === false) return next(new ErrorHandler('Please send valid chat id !' , 400))
+  // check sending groupChat id is valid or not.
+  if (mongoose.isValidObjectId(chatId) === false)
+    return next(new ErrorHandler("Please send valid chat id !", 400));
 
-    const chat = await Chats.findById(chatId);
+  const chat = await Chats.findById(chatId);
 
-    if(chat.groupChat === false) return next(new ErrorHandler('You can not leave private chat !' , 400));
+  if (chat.groupChat === false)
+    return next(new ErrorHandler("You can not leave private chat !", 400));
 
-    if(chat.members.length < 3) return next(new ErrorHandler('You can not leave group chat because it should have atleast 3 members !' , 400))
+  if (chat.members.length < 3)
+    return next(
+      new ErrorHandler(
+        "You can not leave group chat because it should have atleast 3 members !",
+        400
+      )
+    );
 
-    chat.members = chat.members.filter(member => member.toString() !== req.user.id.toString())
+  chat.members = chat.members.filter(
+    (member) => member.toString() !== req.user.id.toString()
+  );
 
-    if(chat.creator.toString() === req.user.id.toString()) chat.creator = chat.members[0];
+  if (chat.creator.toString() === req.user.id.toString())
+    chat.creator = chat.members[0];
 
-    await chat.save();
+  await chat.save();
 
-    sendResponse({res , status : 200 , data : null , message : 'Group chat left successfully !'})
-})
+  sendResponse({
+    res,
+    status: 200,
+    data: null,
+    message: "Group chat left successfully !",
+  });
+});
 
 export const renameGroupName = asyncErrorHandler(async (req, res, next) => {
-    const chatId = req.params.id
-    
-    const chat = await Chats.findById(chatId);
+  const chatId = req.params.id;
 
-    if(chat.groupChat === false) return next(new ErrorHandler('You can not rename private chat !' , 400));
+  const chat = await Chats.findById(chatId);
 
-    if(chat.creator.toString !== req.user.id.toString()) return next(new ErrorHandler('Only admin can change group chat name !' , 400))
+  if (chat.groupChat === false)
+    return next(new ErrorHandler("You can not rename private chat !", 400));
 
-    chat.chatname = req.body.chatName;
+  if (chat.creator.toString !== req.user.id.toString())
+    return next(
+      new ErrorHandler("Only admin can change group chat name !", 400)
+    );
 
-    await chat.save({validateBeforeSave : false})
+  chat.chatname = req.body.chatName;
 
-    sendResponse({res , status : 200 , data : null , message : 'Group chat name changed successfully !'})
-})
+  await chat.save({ validateBeforeSave: false });
+
+  sendResponse({
+    res,
+    status: 200,
+    data: null,
+    message: "Group chat name changed successfully !",
+  });
+});
 
 export const removeGroupMember = asyncErrorHandler(async (req, res, next) => {
+  const chatId = req.params.id;
+  const memberId = req.req.body;
+
+  // check sending groupChat id is valid or not.
+  if (mongoose.isValidObjectId(chatId) === false)
+    return next(new ErrorHandler("Please send valid chat id !", 400));
+
+  const chat = await Chats.findById(chatId);
+
+  if (chat.groupChat === false)
+    return next(
+      new ErrorHandler("You can not remove member from private chat !", 400)
+    );
+
+  if (chat.creator.toString() !== req.user.id.toString())
+    return next(
+      new ErrorHandler("Only admin can remove member from group chat !", 400)
+    );
+
+  chat.members = chat.members.filter(
+    (member) => member.toString() !== memberId.toString()
+  );
+
+  await chat.save({ validateBeforeSave: false });
+
+  sendResponse({
+    res,
+    status: 200,
+    data: null,
+    message: "Member removed from group chat successfully !",
+  });
+});
+
+export const addMemberInGroupChat = asyncErrorHandler(
+  async (req, res, next) => {
     const chatId = req.params.id;
     const memberId = req.req.body;
 
-    // check sending groupChat id is valid or not.
-    if(mongoose.isValidObjectId(chatId) === false) return next(new ErrorHandler('Please send valid chat id !' , 400))    
-
     const chat = await Chats.findById(chatId);
 
-    if(chat.groupChat === false) return next(new ErrorHandler('You can not remove member from private chat !' , 400));
+    if (chat.groupChat === false)
+      return next(
+        new ErrorHandler("You can not add member to private chat !", 400)
+      );
 
-    if(chat.creator.toString() !== req.user.id.toString()) return next(new ErrorHandler('Only admin can remove member from group chat !' , 400))
+    if (chat.creator.toString() !== req.user.id.toString())
+      return next(
+        new ErrorHandler("Only admin can add member to group chat !", 400)
+      );
 
-    chat.members = chat.members.filter(member => member.toString() !== memberId.toString())
+    if (chat.members.length + memberId.length > 100)
+      return next(
+        new ErrorHandler(
+          "You can not add more than 100 members in group chat !",
+          400
+        )
+      );
 
-    await chat.save({validateBeforeSave : false})
-
-    sendResponse({res , status : 200 , data : null , message : 'Member removed from group chat successfully !'})
-
-})
-
-export const addMemberInGroupChat = asyncErrorHandler(async (req, res, next) => {
-    const chatId = req.params.id;
-    const memberId = req.req.body;
-
-    const chat = await Chats.findById(chatId);
-
-    if(chat.groupChat === false) return next(new ErrorHandler('You can not add member to private chat !' , 400));
-
-    if(chat.creator.toString() !== req.user.id.toString()) return next(new ErrorHandler('Only admin can add member to group chat !' , 400))
-
-    if(chat.members.length+memberId.length > 100) return next(new ErrorHandler('You can not add more than 100 members in group chat !' , 400))
-
-    chat.members = [...chat.members , ...memberId]
-    await chat.save({validateBeforeSave : false})
-    sendResponse({res , status : 200 , data : null , message : 'Member added to group chat successfully !'})
-})
+    chat.members = [...chat.members, ...memberId];
+    await chat.save({ validateBeforeSave: false });
+    sendResponse({
+      res,
+      status: 200,
+      data: null,
+      message: "Member added to group chat successfully !",
+    });
+  }
+);
 
 export const deleteChats = asyncErrorHandler(async (req, res, next) => {
   const chatId = req.params.id;
-  if(mongoose.isValidObjectId(chatId) === false) return next(new ErrorHandler('Please send valid chat id !' , 400))
+  if (mongoose.isValidObjectId(chatId) === false)
+    return next(new ErrorHandler("Please send valid chat id !", 400));
 
   const chat = await Chats.findById(chatId);
-  if(chat.groupChat){
-    if(chat.creator.toString() !== req.user.id.toString()) return next(new ErrorHandler('Only admin can delete group chat !' , 400));
 
-    const messages = await Messages.find({chatId : chatId});
-
-    if(messages.length > 0 ){
-      dele
-    }
+  if (chat.groupChat) {
+    if (chat.creator.toString() !== req.user.id.toString())
+      return next(new ErrorHandler("Only admin can delete group chat !", 400));
   }
 
+    const messages = await Messages.find({ chatId: chatId });
 
-})
+    if (messages.length > 0) {
+      const attachments = messages.flatMap((message) => message.attachments);
+      if (attachments.length > 0) {
+        const { success, error } = await removeMultipleFileFromCloudinary({
+          files: attachments,
+        });
+
+        if (!success)
+          return next(
+            new ErrorHandler(
+              error.message || "Error while deleting the attachments !",
+              400
+            )
+          );
+      }
+      await Messages.deleteMany({_id : {$in : messages.map(message => message._id)}})
+    }
+
+    await Chats.findByIdAndDelete(chatId);
+    sendResponse({
+      res,
+      status: 200,
+      data: null,
+      message: "Chat deleted successfully !",
+    });
+  }
+);
