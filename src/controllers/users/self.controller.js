@@ -157,3 +157,8 @@ export const updatePassword = asyncErrorHandler(async (req, res, next) => {
     message: "User password updated successfully !",
   });
 });
+
+export const getSuggestUser = asyncErrorHandler(async (req, res, next) => {
+  const users = await Users.find().limit(10)
+  sendResponse({res , data : users , message : "Suggested users fetched successfully !" , status : 200})
+})
