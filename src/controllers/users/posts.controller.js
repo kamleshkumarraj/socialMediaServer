@@ -141,31 +141,85 @@ export const deletePost = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-export const getMyPost = asyncErrorHandler(async (req, res, next) => {
+
+
+export const getPosts = asyncErrorHandler(async (req, res, next) => {
   const { page = 1, limit = 20 } = req.params;
   const skip = (page - 1) * limit;
-  const myPosts = await Posts.aggregate(
-    findPostQuery({
-      match: { creator: new mongoose.Types.ObjectId(req?.user?.id) },
-      limit,
-      skip,
-    })
-  );
+  const allPosts = await Posts.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "creator",
+        foreignField: "_id",
+        as: "creatorDetails",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              creatorName: { $concat: ["$firstname", " ", "$lastname"] },
+              username: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "comments",
+        localField: "_id",
+        foreignField: "postId",
+        as: "comments",
+      },
+    },
+    {
+      $unwind: "$creatorDetails",
+    },
+    {
+      $project: {
+        comments: 1,
+        creatorDetails: 1,
+        content: 1,
+        _id: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        images: 1,
+        like: 1,
+        share: 1,
+      },
+    },
+    {
+      $skip: skip,
+    },
+    {
+      $limit: limit,
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
 
-  sendResponse({
-    res,
-    status: 200,
-    data: myPosts,
-    message: "Posts fetched successfully !",
-  });
-});
-
-export const getAllPost = asyncErrorHandler(async (req, res, next) => {
-  const { page = 1, limit = 20 } = req.params;
-  const skip = (page - 1) * limit;
-  const allPosts = await Posts.aggregate(
-    findPostQuery({ match: {}, skip: skip, limit: limit })
-  );
+    ,
+    {
+      $facet: [
+        {
+          allPosts: [
+            {
+              $match: {},
+            },
+          ],
+        },
+        {
+          myCreatedPost : [{
+            $match : {creator : new mongoose.Types.ObjectId(req?.user?.id)}
+          }]
+        },
+        
+      ],
+    },
+  ]);
   sendResponse({
     res,
     status: 200,
