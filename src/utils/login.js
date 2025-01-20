@@ -3,6 +3,8 @@ export const loginWithJWT = ({ res, user }) => {
   const options = {
     expires: new Date(Date.now() + process.env.TOKEN_EXPIRY * 60 * 60 * 1000),
     httpOnly: true,
+    sameSite : 'lax',
+    secure : false
   };
   res
     .status(200)

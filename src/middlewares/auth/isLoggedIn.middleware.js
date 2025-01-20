@@ -10,6 +10,7 @@ export const isLoggedIn = asyncErrorHandler(async (req , res , next) => {
     try {
         const decodeData = jwt.verify(token , process.env.JWT_SECRET);
         const userData = await Users.findById(decodeData.id)
+        if(!userData) return next(new ErrorHandler("Please send valid token !",404))
         req.user = userData;
         next();
     } catch (error) {

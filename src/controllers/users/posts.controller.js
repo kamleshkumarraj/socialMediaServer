@@ -1,4 +1,4 @@
-import mongoose, { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId, Types } from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 import { Posts } from "../../models/posts.models.js";
@@ -144,6 +144,7 @@ export const deletePost = asyncErrorHandler(async (req, res, next) => {
 export const getPosts = asyncErrorHandler(async (req, res, next) => {
   const { page = 1, limit = 20 } = req.params;
   const skip = (page - 1) * limit;
+  console.log(req?.user)
   const [allPosts] = await Posts.aggregate([
     {
       $lookup: {
@@ -223,7 +224,7 @@ export const getPosts = asyncErrorHandler(async (req, res, next) => {
         ],
         myCreatedPost: [
           {
-            $match: { "creatorDetails._id" : new mongoose.Types.ObjectId(req?.user?.id) },
+            $match: { "creatorDetails._id" : new Types.ObjectId(req?.user?.id) },
           },
           {
             $skip: skip,
