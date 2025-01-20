@@ -144,8 +144,7 @@ export const deletePost = asyncErrorHandler(async (req, res, next) => {
 export const getPosts = asyncErrorHandler(async (req, res, next) => {
   const { page = 1, limit = 20 } = req.params;
   const skip = (page - 1) * limit;
-  const [allPosts] = await Posts.aggregate(
-    [
+  const [allPosts] = await Posts.aggregate([
     {
       $lookup: {
         from: "users",

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getSuggestUser } from "../../controllers/users/self.controller";
+import { getSuggestUser } from "../../controllers/users/self.controller.js";
 
 export const selfRouter = Router();
 

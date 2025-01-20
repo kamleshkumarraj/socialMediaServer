@@ -1,13 +1,12 @@
-import express from 'express';
 import cookieParser from 'cookie-parser';
-import cors from 'cors'
+import cors from 'cors';
+import express from 'express';
+import { isLoggedIn } from './middlewares/auth/isLoggedIn.middleware.js';
 import { authRouter } from './routes/auth/auth.routes.js';
-import { postsRouter } from './routes/users/posts.routes.js';
-import { removeFile } from './utils/cloudinary.utils.js';
 import { chatsRouter } from './routes/users/chats.routes.js';
 import { messageRouter } from './routes/users/message.routes.js';
+import { postsRouter } from './routes/users/posts.routes.js';
 import { reactionsRouter } from './routes/users/reactions.routes.js';
-import { isLoggedIn } from './middlewares/auth/isLoggedIn.middleware.js';
 import { selfRouter } from './routes/users/self.routes.js';
 
 export const app = express();

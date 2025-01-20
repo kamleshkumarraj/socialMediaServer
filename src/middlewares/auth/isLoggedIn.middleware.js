@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import { Users } from "../../models/users.models.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 export const isLoggedIn = asyncErrorHandler(async (req , res , next) => {
-    const token = req.cookies.token || req.headers.authorization.replace('Bearer ' , '');
+    const token = req.cookies.token;
 
     if(!token) return next(new ErrorHandler("please login first !" , 401))
 
