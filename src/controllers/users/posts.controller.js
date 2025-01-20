@@ -141,12 +141,11 @@ export const deletePost = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-
-
 export const getPosts = asyncErrorHandler(async (req, res, next) => {
   const { page = 1, limit = 20 } = req.params;
   const skip = (page - 1) * limit;
-  const allPosts = await Posts.aggregate([
+  const [allPosts] = await Posts.aggregate(
+    [
     {
       $lookup: {
         from: "users",
@@ -171,53 +170,75 @@ export const getPosts = asyncErrorHandler(async (req, res, next) => {
         localField: "_id",
         foreignField: "postId",
         as: "comments",
+        pipeline : [
+          {
+            $addFields : {
+              commentCounts : {$size : "$comment"}
+            }
+          },
+          {
+            $project : {
+              commentCounts : 1,
+              _id : 0
+            }
+          }
+      ]
       },
     },
     {
-      $unwind: "$creatorDetails",
+      $unwind: {
+        path : "$creatorDetails",
+        preserveNullAndEmptyArrays : true
+      },
     },
     {
       $project: {
-        comments: 1,
+        commentsCounts : {$sum : "$comments.commentCounts"},
         creatorDetails: 1,
         content: 1,
         _id: 1,
         createdAt: 1,
         updatedAt: 1,
         images: 1,
-        like: 1,
-        share: 1,
+        likesCounts : {$size : "$reactions"},
+        sharesCount: {$sum : "$shares.count"},
       },
     },
     {
-      $skip: skip,
-    },
-    {
-      $limit: limit,
-    },
-    {
-      $sort: {
-        createdAt: -1,
-      },
-    },
-
-    ,
-    {
-      $facet: [
-        {
-          allPosts: [
-            {
-              $match: {},
+      $facet: {
+        allPosts: [
+          {
+            $match: {},
+          },
+          {
+            $skip: skip,
+          },
+          {
+            $limit: limit,
+          },
+          {
+            $sort: {
+              createdAt: -1,
             },
-          ],
-        },
-        {
-          myCreatedPost : [{
-            $match : {creator : new mongoose.Types.ObjectId(req?.user?.id)}
-          }]
-        },
-        
-      ],
+          },
+        ],
+        myCreatedPost: [
+          {
+            $match: { "creatorDetails._id" : new mongoose.Types.ObjectId(req?.user?.id) },
+          },
+          {
+            $skip: skip,
+          },
+          {
+            $limit: limit,
+          },
+          {
+            $sort: {
+              createdAt: -1,
+            },
+          },
+        ],
+      },
     },
   ]);
   sendResponse({

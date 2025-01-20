@@ -1,11 +1,9 @@
 import { Router } from "express";
-import { isLoggedIn } from "../../middlewares/auth/isLoggedIn.middleware.js";
 import {
   createPost,
   deletePost,
-  getAllPost,
-  getMyPost,
-  getSinglePost,
+  getPosts,
+  getSinglePost
 } from "../../controllers/users/posts.controller.js";
 import { uploads } from "../../utils/files.utils.js";
 import {
@@ -24,6 +22,5 @@ postsRouter
     createPost
   );
 postsRouter.route("/delete/:id").delete(deletePost);
-postsRouter.route("/get/my-created").get(getMyPost);
-postsRouter.route("/get/all").get(getAllPost);
+postsRouter.route("/get/all").get(getPosts);
 postsRouter.route("/get/:id").get(getSinglePost);

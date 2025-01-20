@@ -164,7 +164,7 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
         comment: {
           $elemMatch: {
             _id: innerCommentId,
-            like: { $elemMatch: { creator: req.user.id }},
+            like: { $elemMatch: { creator: req.user.id } },
           },
         },
       },
@@ -208,7 +208,15 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
       )
     );
 
-  const alreadyReplied = await Comments.findOne({_id : commentId , comment : {$elemMatch : {_id : innerCommentId , reply : {$elemMatch : {creator : req.user.id}}}}})
+  const alreadyReplied = await Comments.findOne({
+    _id: commentId,
+    comment: {
+      $elemMatch: {
+        _id: innerCommentId,
+        reply: { $elemMatch: { creator: req.user.id } },
+      },
+    },
+  });
 
   if (alreadyReplied) {
     await Comments.updateOne(
