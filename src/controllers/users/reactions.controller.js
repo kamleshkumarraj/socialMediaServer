@@ -164,7 +164,7 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
         comment: {
           $elemMatch: {
             _id: innerCommentId,
-            like: { $elemMatch: { creator: req.user.id } },
+            like: { $elemMatch: { creator: req.user.id }},
           },
         },
       },
