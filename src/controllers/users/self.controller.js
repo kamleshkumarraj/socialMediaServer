@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 import { Users } from "../../models/users.models.js";
@@ -41,11 +42,11 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
       $project: {
         Followers: 1,
         Following: 1,
-        firstname : 1,
-        lastname : 1,
-        email : 1,
-        username : 1,
-        avatar : 1
+        firstname: 1,
+        lastname: 1,
+        email: 1,
+        username: 1,
+        avatar: 1,
       },
     },
   ]);
@@ -155,8 +156,103 @@ export const updatePassword = asyncErrorHandler(async (req, res, next) => {
 });
 
 export const getSuggestUser = asyncErrorHandler(async (req, res, next) => {
-  const users = await Users.find().limit(10)
-  sendResponse({res , data : users , message : "Suggested users fetched successfully !" , status : 200})
-})
+  // now we get that friends that is not in my following list. and i am not his followers.
+  const { limit = 10, page = 1 } = req.params;
+  const skip = (page - 1) * limit;
+  const users = await Users.aggregate([
+    {
+      $lookup: {
+        from: "followers",
+        localField: "_id",
+        foreignField: "followedBy",
+        as: "following",
+      },
+    },
+    {
+      $lookup: {
+        from: "followers",
+        localField: "_id",
+        foreignField: "follow",
+        as: "followers",
+      },
+    },
 
+    {
+      $addFields: {
+        followers: {
+          $ifNull: [
+            {
+              $map: {
+                input: "$followers",
+                as: "followDoc",
+                in: "$$followDoc.followedBy",
+              },
+            },
+            [],
+          ],
+        },
+        following: {
+          $ifNull: [
+            {
+              $map: {
+                input: "$following",
+                as: "followDoc",
+                in: "$$followDoc.follow",
+              },
+            },
+            [],
+          ],
+        },
+      },
+    },
+    // other method for finding the following and followers.
+    // you can also use this with handling the null value.
+    // {
+    //   $addFields : {
+    //     followers : "$followers.followedBy",
+    //     following : "$following.follow"
+    //   }
+    // },
 
+    {
+      $match: {
+        _id: { $ne: new Types.ObjectId(req.user.id) },
+        $and: [
+          { followers: { $ne: new Types.ObjectId(req.user.id) } },
+          { following: { $ne: new Types.ObjectId(req.user.id) } },
+        ],
+      },
+    },
+
+    {
+      $project: {
+        _id: 1,
+        firstname: 1,
+        lastname: 1,
+        email: 1,
+        username: 1,
+        avatar: 1,
+        followers: 1,
+        following: 1,
+      },
+    },
+    {
+      $skip: skip,
+    },
+    {
+      $limit: limit,
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+  ]);
+  // const users = await Users.find().limit(10)
+  sendResponse({
+    res,
+    data: users,
+    message: "Suggested users fetched successfully !",
+    status: 200,
+  });
+});

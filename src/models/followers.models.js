@@ -1,11 +1,11 @@
 import mongoose from "mongoose"
 
 const followerSchema = new mongoose.Schema({
-    follower : {
+    follow : {
         type : mongoose.Schema.Types.ObjectId,
         ref : "user"
     },
-    following : {
+    followedBy : {
         type : mongoose.Schema.Types.ObjectId,
         ref : "user"
     }
