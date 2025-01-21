@@ -8,6 +8,7 @@ import { messageRouter } from './routes/users/message.routes.js';
 import { postsRouter } from './routes/users/posts.routes.js';
 import { reactionsRouter } from './routes/users/reactions.routes.js';
 import { selfRouter } from './routes/users/self.routes.js';
+import { userRouter } from './routes/users/users.routes.js';
 
 export const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/v1/auth' , authRouter)
 app.use(isLoggedIn)
 
 // now we handle user related routes.
+app.use('/api/v1/user' , userRouter)
 app.use('/api/v1/user/post' , postsRouter)
 app.use('/api/v1/user/chat' , chatsRouter)
 app.use('/api/v1/user/message' , messageRouter)

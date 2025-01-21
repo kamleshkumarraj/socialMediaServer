@@ -1,9 +1,11 @@
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import jwt from 'jsonwebtoken';
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
+import { Users } from "../../models/users.models.js";
 
 export const directLogin = asyncErrorHandler(async (req, res, next) => {
     const {token} = req.cookies;
+    console.log(token)
     if(!token) return next(new ErrorHandler("Please login to access this resource !",402))
     
     try {
@@ -16,6 +18,6 @@ export const directLogin = asyncErrorHandler(async (req, res, next) => {
             message : "User logged in successfully."
         })
     } catch (error) {
-        return next(new ErrorHandler("Please login to access this resource !",402))
+        return next(new ErrorHandler("We get error during validating the token !",401))
     }
 })

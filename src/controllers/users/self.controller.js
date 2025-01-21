@@ -35,21 +35,17 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
       $addFields: {
         followers: { $size: "$Followers" },
         following: { $size: "$Following" },
-        isFollow: {
-          $cond: {
-            if: { $in: [req.user.id, "$Followers.follower"] },
-            then: true,
-            else: false,
-          },
-        },
       },
     },
     {
       $project: {
-        password: 0,
         Followers: 1,
         Following: 1,
-        isFollow: 1,
+        firstname : 1,
+        lastname : 1,
+        email : 1,
+        username : 1,
+        avatar : 1
       },
     },
   ]);
@@ -162,3 +158,5 @@ export const getSuggestUser = asyncErrorHandler(async (req, res, next) => {
   const users = await Users.find().limit(10)
   sendResponse({res , data : users , message : "Suggested users fetched successfully !" , status : 200})
 })
+
+

@@ -1,14 +1,29 @@
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
+import { emit } from "../../helper/emt.js";
+import { Chats } from "../../models/chat.models.js";
 import { Followers } from "../../models/followers.models.js";
+import { Users } from "../../models/users.models.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 
 export const followId = asyncErrorHandler(async (req, res, next) => {
     const following = req.user.id;
     const followers = req.params.id;
-
+    const followersDetails = await Users.findById(followers)
     await Followers.create({following , follower : followers});
 
-    sendResponse({res , status : 201 , data : null , message : 'Followed successfully !'})
+    emit({message : `${req.user.username} follow you ` , members : [followers] , req})
+
+    //now we write code for creating chat between these users!
+    const chatMessage = {
+        chatname : `${req.user.username} - ${followersDetails.username}`,
+        creator : req.user.id,
+        members : [followers , following],
+        groupChat : false
+    }
+
+    await Chats.create(chatMessage);
+
+    sendResponse({res , status : 201 , data : null , message : 'Followed successfully !'});
 })
 
 export const unFollowId = asyncErrorHandler(async (req, res, next) => {
