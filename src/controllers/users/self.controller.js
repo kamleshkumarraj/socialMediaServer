@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 import { Users } from "../../models/users.models.js";
@@ -13,9 +13,10 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
   const myBio = await Users.aggregate([
     {
       $match: {
-        _id: req.user.id,
+        _id: new Types.ObjectId(req.user.id),
       },
     },
+    // join the users and follower model and get followers
     {
       $lookup: {
         from: "followers",
@@ -24,6 +25,7 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
         as: "Followers",
       },
     },
+    // join the users and follower model and get following
     {
       $lookup: {
         from: "followers",
@@ -32,6 +34,73 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
         as: "Following",
       },
     },
+
+    //join the users from post and also get the post
+    {
+      $lookup: {
+        from: "posts",
+        localField: "_id",
+        foreignField: "creator",
+        as: "posts",
+        //after getting post we join the user for getting the creators details.
+        pipeline: [
+          // we get the creators details
+          // {
+          //   $lookup: {
+          //     from: "users",
+          //     localField: "creator",
+          //     foreignField: "_id",
+          //     as: "creatorDetails",
+          //     pipeline: [
+          //       {
+          //         $project: {
+          //           _id: 1,
+          //           creatorName: { $concat: ["$firstname", " ", "$lastname"] },
+          //           username: 1,
+          //           avatar: 1,
+          //         },
+          //       },
+          //     ],
+          //   },
+          // },
+          // we get comments
+          {
+            $lookup: {
+              from: "comments",
+              localField: "_id",
+              foreignField: "postId",
+              as: "comments",
+              pipeline: [
+                {
+                  $addFields: {
+                    commentCounts: { $size: "$comment" },
+                  },
+                },
+              ],
+            },
+          },
+          // {
+          //   $unwind: "$creatorDetails",
+          // },
+          // now we find the like count share count and comment count for a post.
+          {
+            $project: {
+              _id: 1,
+              // creatorDetails: 1,
+              content: 1,
+              images: 1,
+              likesCount: { $size: "$reactions" },
+              shareCount: { $size: "$shares" },
+              viewsCount: { $size: "$views" },
+              commentCount: { $sum: "$comments.commentCounts" },
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          },
+        ],
+      },
+    },
+
     {
       $addFields: {
         followersSize: { $size: "$Followers" },
@@ -47,9 +116,12 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
         email: 1,
         username: 1,
         avatar: 1,
+        posts: 1,
+        totalPost : { $size: "$posts" },
       },
     },
   ]);
+
   if (!myBio) return next(new ErrorHandler("please send valid user id !", 404));
 
   sendResponse({
@@ -254,5 +326,115 @@ export const getSuggestUser = asyncErrorHandler(async (req, res, next) => {
     data: users,
     message: "Suggested users fetched successfully !",
     status: 200,
+  });
+});
+
+// get a single user with details.
+export const getBioForUser = asyncErrorHandler(async (req, res, next) => {
+  const userId=  req.params.id;
+
+  if(mongoose.isValidObjectId(userId)) return next(new ErrorHandler("Please send valid user id !", 404));
+
+  const myBio = await Users.aggregate([
+    {
+      $match: {
+        _id: new Types.ObjectId(userId),
+      },
+    },
+    // join the users and follower model and get followers
+    {
+      $lookup: {
+        from: "followers",
+        localField: "_id",
+        foreignField: "follow",
+        as: "Followers",
+      },
+    },
+    // join the users and follower model and get following
+    {
+      $lookup: {
+        from: "followers",
+        localField: "_id",
+        foreignField: "followedBy",
+        as: "Following",
+      },
+    },
+
+    //join the users from post and also get the post
+    {
+      $lookup: {
+        from: "posts",
+        localField: "_id",
+        foreignField: "creator",
+        as: "posts",
+        //after getting post we join the user for getting the creators details.
+        pipeline: [
+          
+          // we get comments
+          {
+            $lookup: {
+              from: "comments",
+              localField: "_id",
+              foreignField: "postId",
+              as: "comments",
+              pipeline: [
+                {
+                  $addFields: {
+                    commentCounts: { $size: "$comment" },
+                  },
+                },
+              ],
+            },
+          },
+          // {
+          //   $unwind: "$creatorDetails",
+          // },
+          // now we find the like count share count and comment count for a post.
+          {
+            $project: {
+              _id: 1,
+              // creatorDetails: 1,
+              content: 1,
+              images: 1,
+              likesCount: { $size: "$reactions" },
+              shareCount: { $size: "$shares" },
+              viewsCount: { $size: "$views" },
+              commentCount: { $sum: "$comments.commentCounts" },
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          },
+        ],
+      },
+    },
+
+    {
+      $addFields: {
+        followersSize: { $size: "$Followers" },
+        followingSize: { $size: "$Following" },
+      },
+    },
+    {
+      $project: {
+        followersSize: 1,
+        followingSize: 1,
+        firstname: 1,
+        lastname: 1,
+        email: 1,
+        username: 1,
+        avatar: 1,
+        posts: 1,
+        totalPost : { $size: "$posts" },
+      },
+    },
+  ]);
+
+  if (!myBio) return next(new ErrorHandler("please send valid user id !", 404));
+
+  sendResponse({
+    res,
+    status: 200,
+    data: myBio,
+    message: "User bio fetched successfully !",
   });
 });
