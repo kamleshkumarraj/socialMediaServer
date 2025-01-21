@@ -438,3 +438,44 @@ export const getBioForUser = asyncErrorHandler(async (req, res, next) => {
     message: "User bio fetched successfully !",
   });
 });
+
+// get all users for follow back means get all users that i am not following but those users follow me.
+
+export const getFollowBackUsers = asyncErrorHandler(async (req, res, next) => {
+  const {limit = 10 , page = 1} = req.params;
+  const skip = (page - 1) * limit;
+
+  const followBackUser = await Users.aggregate([
+    {$match : {_id : new Types.ObjectId(req.user.id)}},
+    {
+      $lookup : {
+        from : 'followers',
+        localField : "_id",
+        foreignField : "follow",
+        as : "followers"
+      }
+    },
+    {
+      $lookup : {
+        from : 'followers',
+        localField : "_id",
+        foreignField : "followedBy",
+        as : "following"
+      }
+    },
+    {
+      $addFields : {
+        followBack : {
+          $setDifference : ["$followers.followedBy", "$following.follow"]
+        }
+      }
+    },
+    {
+      $project : {
+        followBack : 1
+      }
+    }
+  ])
+
+  sendResponse({res , status : 200 , data : followBackUser , message : "Follow back users fetched successfully !"})
+})
