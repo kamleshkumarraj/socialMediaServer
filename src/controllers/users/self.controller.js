@@ -18,30 +18,30 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
     },
     {
       $lookup: {
-        from: "Follower",
+        from: "followers",
         localField: "_id",
-        foreignField: "followers",
+        foreignField: "follow",
         as: "Followers",
       },
     },
     {
       $lookup: {
-        from: "Follower",
+        from: "followers",
         localField: "_id",
-        foreignField: "following",
+        foreignField: "followedBy",
         as: "Following",
       },
     },
     {
       $addFields: {
-        followers: { $size: "$Followers" },
-        following: { $size: "$Following" },
+        followersSize: { $size: "$Followers" },
+        followingSize: { $size: "$Following" },
       },
     },
     {
       $project: {
-        Followers: 1,
-        Following: 1,
+        followersSize: 1,
+        followingSize: 1,
         firstname: 1,
         lastname: 1,
         email: 1,
