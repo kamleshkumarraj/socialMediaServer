@@ -6,6 +6,7 @@ import {
   deleteComment,
   getTotalLikesDetailsForPost,
   getTotalSharesForPost,
+  getTotalViewsForPost,
   likeAComment,
   replyComment,
 } from "../../controllers/users/reactions.controller.js";
@@ -20,4 +21,5 @@ reactionsRouter.route("/reply-comment/:id").post(replyComment);
 reactionsRouter.route("/like-comment/:id").post(likeAComment);
 reactionsRouter.route("/get-total-likes-post/:id").get(getTotalLikesDetailsForPost);
 reactionsRouter.route('/get-total-shares-post/:id').get(getTotalSharesForPost)
+reactionsRouter.route('/get-total-views-post').get(getTotalViewsForPost)
 // reactionsRouter.route('/create-view/:id').post(createView)
