@@ -1,3 +1,4 @@
+// Import required modules and utilities
 import mongoose, { Types } from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { Posts } from "../../models/posts.models.js";
@@ -5,27 +6,33 @@ import { sendResponse } from "../../utils/sendResponse.js";
 import { Comments } from "../../models/comment.models.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 
-export const createReactions = asyncErrorHandler(async (req, res, next) => {
-  const postId = req.params.id;
-  const reactions = req.body.reactions || "like";
+// Controller to create or update reactions for a post
+export const createReactions = asyncErrorHandler(async (req, res, next) => 
+  {
+  const postId = req.params.id; // Get post ID from request parameters
+  const reactions = req.body.reactions || "like"; // Default reaction is 'like' if none provided
 
+  // Validate post ID
   if (mongoose.isValidObjectId(postId) == false)
     return next(new ErrorHandler("Please send valid post id !", 400));
 
+  // Check if post exists
   const post = await Posts.findById(postId);
-
   if (!post) return next(new ErrorHandler("Please send valid post id !", 400));
 
+  // Check if user already reacted to the post
   if (
     post.reactions.find(
       (reaction) => reaction.creator.toString() == req.user.id.toString()
     )
   ) {
+    // Update the reaction type if it exists
     await Posts.updateOne(
       { _id: postId, reactions: { $elemMatch: { creator: req.user.id } } },
       { $set: { "reactions.$.reactionType": reactions } }
     );
   } else {
+    // Add a new reaction
     await Posts.updateOne(
       { _id: postId },
       {
@@ -34,6 +41,7 @@ export const createReactions = asyncErrorHandler(async (req, res, next) => {
     );
   }
 
+  // Send success response
   sendResponse({
     res,
     status: 200,
@@ -42,20 +50,25 @@ export const createReactions = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
+// Controller to create or update shares for a post
 export const createShare = asyncErrorHandler(async (req, res, next) => {
-  const postId = req.params.id;
+  const postId = req.params.id; // Get post ID from request parameters
+
+  // Validate post ID
   if (mongoose.isValidObjectId(postId) == false)
     return next(new ErrorHandler("Please send valid post id !", 400));
 
+  // Check if post exists
   const post = await Posts.findById(postId);
-
   if (!post) return next(new ErrorHandler("Please send valid post id !", 400));
 
+  // Check if user has already shared the post
   const alreadyShared = await Posts.findOne({
     _id: new Types.ObjectId(postId),
     shares: { $elemMatch: { creator: req.user.id } },
   });
   if (alreadyShared) {
+    // Increment share count if already shared
     await Posts.updateOne(
       {
         _id: new Types.ObjectId(postId),
@@ -64,12 +77,14 @@ export const createShare = asyncErrorHandler(async (req, res, next) => {
       { $inc: { "shares.$.count": 1 } }
     );
   } else {
+    // Add a new share record
     await Posts.updateOne(
       { _id: new Types.ObjectId(postId) },
       { $push: { shares: { creator: req.user.id, count: 1 } } }
     );
   }
 
+  // Send success response
   sendResponse({
     res,
     status: 200,
@@ -78,20 +93,23 @@ export const createShare = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
+// Controller to create a comment or update an existing one
 export const createComment = asyncErrorHandler(async (req, res, next) => {
-  const { commentMessage } = req.body;
+  const { commentMessage } = req.body; // Extract comment message from request body
+  const postId = req.params.id; // Get post ID from request parameters
 
-  const postId = req.params.id;
-
+  // Validate post ID
   if (mongoose.isValidObjectId(postId) == false)
     return next(new ErrorHandler("Please send valid post id !", 400));
 
+  // Check if user has already commented on the post
   const existComment = await Comments.findOne({
     creator: req.user.id,
     postId: postId,
   });
 
   if (existComment) {
+    // Add a new comment to the existing comment thread
     await Comments.updateOne(
       {
         _id: existComment._id,
@@ -101,6 +119,7 @@ export const createComment = asyncErrorHandler(async (req, res, next) => {
       }
     );
   } else {
+    // Create a new comment record
     await Comments.create({
       creator: req.user.id,
       comment: { content: commentMessage, reply: [], like: [] },
@@ -108,6 +127,7 @@ export const createComment = asyncErrorHandler(async (req, res, next) => {
     });
   }
 
+  // Send success response
   sendResponse({
     res,
     data: null,
@@ -116,18 +136,25 @@ export const createComment = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
+// Controller to create views for a post
 export const createViews = asyncErrorHandler(async (req, res, next) => {
-  const { id: postId } = req.params;
+  const { id: postId } = req.params; // Get post ID from request parameters
 
+  // Validate post ID
   if (mongoose.isValidObjectId(postId) == false)
     return next(new ErrorHandler("Please send valid post id !", 400));
+
+  // Check if post exists
   const post = await Posts.findById(postId);
   if (!post) return next(new ErrorHandler("Please send valid post id !", 400));
+
+  // Check if user has already viewed the post
   const alreadyViewed = await Posts.findOne({
     _id: postId,
     views: { $elemMatch: { creator: req.user.id } },
   });
 
+  // If already viewed, send success response
   if (alreadyViewed)
     return sendResponse({
       res,
@@ -136,23 +163,32 @@ export const createViews = asyncErrorHandler(async (req, res, next) => {
       message: "You have already viewed this post !",
     });
 
+  // Add a new view record
   await Posts.updateOne(
     {
       _id: new Types.ObjectId(postId),
-      views: { $elemMatch: { creator: req.user.id } },
     },
     { $push: { views: { creator: req.user.id } } }
   );
+
+  sendResponse({
+    res,
+    data: null,
+    message: "View created successfully !",
+    status: 200,
+  });
 });
 
+// Controller to delete a comment
 export const deleteComment = asyncErrorHandler(async (req, res, next) => {
-  const commentId = req.params.id;
+  const commentId = req.params.id; // Get comment ID from request parameters
 
+  // Validate comment ID
   if (mongoose.isValidObjectId(commentId) == false)
     return next(new ErrorHandler("Please send valid comment id !", 400));
 
+  // Check if comment exists and belongs to the user
   const comment = await Comments.findById(commentId);
-
   if (comment.creator.toString() != req.user.id)
     return next(
       new ErrorHandler(
@@ -161,8 +197,10 @@ export const deleteComment = asyncErrorHandler(async (req, res, next) => {
       )
     );
 
+  // Delete the comment
   await Comments.findByIdAndDelete(commentId);
 
+  // Send success response
   sendResponse({
     res,
     status: 200,
@@ -171,14 +209,17 @@ export const deleteComment = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
+// Controller to like or update a like on a comment
 export const likeAComment = asyncErrorHandler(async (req, res, next) => {
-  const commentId = req.params.id;
-  const innerCommentId = req.body.innerCommentId;
-  const likeType = req.body.likeType;
+  const commentId = req.params.id; // Get comment ID from request parameters
+  const innerCommentId = req.body.innerCommentId; // Get inner comment ID from request body
+  const likeType = req.body.likeType; // Get like type from request body
 
+  // Validate comment ID
   if (mongoose.isValidObjectId(commentId) == false)
     return next(new ErrorHandler("Please send valid comment id !", 400));
 
+  // Check if user already liked the comment
   const existLike = await Comments.findOne({
     _id: commentId,
     comment: {
@@ -190,6 +231,7 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
   });
 
   if (existLike) {
+    // Update the like type
     await Comments.updateOne(
       {
         _id: commentId,
@@ -208,6 +250,7 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
       }
     );
   } else {
+    // Add a new like
     await Comments.updateOne(
       { _id: commentId, "comment._id": innerCommentId },
       {
@@ -218,6 +261,7 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
     );
   }
 
+  // Send success response
   sendResponse({
     res,
     data: null,
@@ -226,12 +270,16 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
+// Controller to reply to a comment
 export const replyComment = asyncErrorHandler(async (req, res, next) => {
-  const { commentMessage, innerCommentId } = req.body;
-  const commentId = req.params.id;
+  const { commentMessage, innerCommentId } = req.body; // Extract data from request body
+  const commentId = req.params.id; // Get comment ID from request parameters
+
+  // Validate comment ID
   if (mongoose.isValidObjectId(commentId) == false)
     return next(new ErrorHandler("Please send valid comment id !", 400));
 
+  // Ensure both comment message and inner comment ID are provided
   if (!commentMessage || !innerCommentId)
     return next(
       new ErrorHandler(
@@ -240,6 +288,7 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
       )
     );
 
+  // Check if user already replied to the comment
   const alreadyReplied = await Comments.findOne({
     _id: commentId,
     comment: {
@@ -251,6 +300,7 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
   });
 
   if (alreadyReplied) {
+    // Update the existing reply
     await Comments.updateOne(
       {
         _id: commentId,
@@ -262,33 +312,37 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
         },
       },
       {
-        $push: { "comment.$.reply.$[innerReply].replyComment": commentMessage },
+        $set: {
+          "comment.$.reply.$[innerReply].content": commentMessage,
+        },
       },
       {
         arrayFilters: [{ "innerReply.creator": req.user.id }],
       }
     );
   } else {
+    // Add a new reply
     await Comments.updateOne(
       { _id: commentId, "comment._id": innerCommentId },
       {
         $push: {
-          "comment.$.reply": {
-            creator: req.user.id,
-            replyComment: commentMessage,
-          },
+          "comment.$.reply": { creator: req.user.id, content: commentMessage },
         },
       }
     );
   }
+
+  // Send success response
   sendResponse({
     res,
     data: null,
-    message: "Reply created successfully !",
+    message: "Comment replied successfully !",
     status: 200,
   });
 });
 
+
+// Controller to get total likes for a post
 export const getTotalLikesDetailsForPost = asyncErrorHandler(
   async (req, res, next) => {
     const postId = req.params.id;
@@ -346,6 +400,7 @@ export const getTotalLikesDetailsForPost = asyncErrorHandler(
   }
 );
 
+// Controller to get total shares for a post
 export const getTotalSharesForPost = asyncErrorHandler(
   async (req, res, next) => {
     const { id: postId } = req.params;
@@ -418,6 +473,7 @@ export const getTotalSharesForPost = asyncErrorHandler(
   }
 );
 
+// Controller to get total views for a post
 export const getTotalViewsForPost = asyncErrorHandler(
   async (req, res, next) => {
     const { id: postId } = req.params;
@@ -484,3 +540,5 @@ export const getTotalViewsForPost = asyncErrorHandler(
     });
   }
 );
+
+// Controller for get total comments for a post

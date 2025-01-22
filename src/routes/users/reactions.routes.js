@@ -3,6 +3,7 @@ import {
   createComment,
   createReactions,
   createShare,
+  createViews,
   deleteComment,
   getTotalLikesDetailsForPost,
   getTotalSharesForPost,
@@ -15,6 +16,7 @@ export const reactionsRouter = Router();
 
 reactionsRouter.route("/create-reaction/:id").post(createReactions);
 reactionsRouter.route("/create-comment/:id").post(createComment);
+reactionsRouter.route("/create-view/:id").post(createViews)
 reactionsRouter.route("/delete-comment/:id").post(deleteComment);
 reactionsRouter.route("/create-share/:id").post(createShare);
 reactionsRouter.route("/reply-comment/:id").post(replyComment);
