@@ -7,8 +7,7 @@ import { Comments } from "../../models/comment.models.js";
 import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 
 // Controller to create or update reactions for a post
-export const createReactions = asyncErrorHandler(async (req, res, next) => 
-  {
+export const createReactions = asyncErrorHandler(async (req, res, next) => {
   const postId = req.params.id; // Get post ID from request parameters
   const reactions = req.body.reactions || "like"; // Default reaction is 'like' if none provided
 
@@ -341,7 +340,6 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-
 // Controller to get total likes for a post
 export const getTotalLikesDetailsForPost = asyncErrorHandler(
   async (req, res, next) => {
@@ -542,3 +540,52 @@ export const getTotalViewsForPost = asyncErrorHandler(
 );
 
 // Controller for get total comments for a post
+export const getTotalCommentsForPost = asyncErrorHandler(
+  async (req, res, next) => {
+    const { id: postId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
+    if (!mongoose.isValidObjectId(postId))
+      return next(new ErrorHandler("Please send valid post id !", 400));
+
+    const totalComments = await Comments.aggregate([
+      { $match: { postId: new Types.ObjectId(postId) } },
+      { $unwind: "$comment" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "creator",
+          foreignField: "_id",
+          as: "commentCreator",
+          pipeline: [
+            {
+              $project: {
+                name: { $concat: ["$firstname", " ", "$lastname"] },
+                avatar: "$avatar.url",
+                username: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind : "$commentCreator"
+      },
+      {
+        $project: {
+          _id: 1,
+          commentCreator: 1,
+          comment : 1
+        },
+      },
+      
+    ]);
+
+    sendResponse({
+      res,
+      data: totalComments,
+      message: "You get total comments for this post ",
+      status: 200,
+    });
+  }
+);
