@@ -319,7 +319,10 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
       },
       {
         $push: {
-          "comment.$.reply.$[innerReply].replyComment": { replyContent: commentMessage, like: [] },
+          "comment.$.reply.$[innerReply].replyComment": {
+            replyContent: commentMessage,
+            like: [],
+          },
         },
       },
       {
@@ -332,7 +335,14 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
       { _id: commentId, "comment._id": innerCommentId },
       {
         $push: {
-          "comment.$.reply": { creator: {_id : req.user.id , username : req.user.username , avatar : req.user?.avatar?.url}, replyComment : [{replyContent : commentMessage , like : []}]},
+          "comment.$.reply": {
+            creator: {
+              _id: req.user.id,
+              username: req.user.username,
+              avatar: req.user?.avatar?.url,
+            },
+            replyComment: [{ replyContent: commentMessage, like: [] }],
+          },
         },
       }
     );
