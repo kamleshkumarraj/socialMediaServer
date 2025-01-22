@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { asyncErrorHandler } from "../../errors/asynHandler.error.js";
 import { Posts } from "../../models/posts.models.js";
 import { sendResponse } from "../../utils/sendResponse.js";
@@ -256,3 +256,60 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
     status: 200,
   });
 });
+
+export const getTotalLikesDetailsForPost = asyncErrorHandler(
+  async (req, res, next) => {
+    const postId = req.params.id;
+
+    if (mongoose.isValidObjectId(postId) == false)
+      return next(new ErrorHandler("Please send valid post id !", 400));
+
+    const totalLikesDetails = await Posts.aggregate([
+      { $match: { _id: new Types.ObjectId(postId) } },
+      {
+        $unwind: "$reactions",
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "reactions.creator",
+          foreignField: "_id",
+          as: "likeCreator",
+          pipeline: [
+            {
+              $project: {
+                name: { $concat: ["$firstname", " ", "$lastname"] },
+                avatar: "$avatar.url",
+                username: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: "$likeCreator",
+      },
+      {
+        $group: {
+          _id: "$reactions.reactionType",
+          count: { $sum: 1 },
+          likeCreator: { $push: "$likeCreator" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          likeCreator: 1,
+          reactions: "$_id",
+          count: 1,
+        },
+      },
+    ]);
+    sendResponse({
+      res,
+      data: totalLikesDetails,
+      status: 200,
+      message: "Total likes details fetched successfully !",
+    });
+  }
+);

@@ -270,3 +270,4 @@ export const getSinglePost = asyncErrorHandler(async (req, res, next) => {
     message: "Post fetched successfully !",
   });
 });
+
