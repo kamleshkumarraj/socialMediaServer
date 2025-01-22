@@ -224,7 +224,7 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
     comment: {
       $elemMatch: {
         _id: innerCommentId,
-        like: { $elemMatch: { creator: req.user.id } },
+        like: { $elemMatch: { "creator._id": req.user.id } },
       },
     },
   });
@@ -237,7 +237,7 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
         comment: {
           $elemMatch: {
             _id: innerCommentId,
-            like: { $elemMatch: { creator: req.user.id } },
+            like: { $elemMatch: { "creator._id": req.user.id } },
           },
         },
       },
@@ -245,7 +245,7 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
         $set: { "comment.$.like.$[innerReply].likeType": likeType },
       },
       {
-        arrayFilters: [{ "innerReply.creator": req.user.id }],
+        arrayFilters: [{ "innerReply.creator._id": req.user.id }],
       }
     );
   } else {
@@ -254,7 +254,7 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
       { _id: commentId, "comment._id": innerCommentId },
       {
         $push: {
-          "comment.$.like": { creator: req.user.id, likeType: likeType },
+          "comment.$.like": { creator: {_id : req.user.id , username : req.user.username , avatar : req.user?.avatar?.url}, likeType: likeType },
         },
       }
     );
