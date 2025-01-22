@@ -9,6 +9,7 @@ import { postsRouter } from './routes/users/posts.routes.js';
 import { reactionsRouter } from './routes/users/reactions.routes.js';
 import { selfRouter } from './routes/users/self.routes.js';
 import { userRouter } from './routes/users/users.routes.js';
+import { notificationRouter } from './routes/users/notifications.routes.js';
 
 export const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/v1/user/chat' , chatsRouter)
 app.use('/api/v1/user/message' , messageRouter)
 app.use('/api/v1/user/reaction' , reactionsRouter)
 app.use('/api/v1/user/self' , selfRouter)
+app.use('/api/v1/user/notifications' , notificationRouter)
 
 app.use(async (err , req , res , next) => {
     err.message = err.message || "Internal Server Error",
