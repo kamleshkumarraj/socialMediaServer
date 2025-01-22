@@ -348,4 +348,6 @@ export const getTotalSharesForPost = asyncErrorHandler(async (req, res, next) =>
       }
     }
   ])
+
+  sendResponse({res , data : totalShares , status : 200 , message : "Total shares fetched successfully !"})
 })
