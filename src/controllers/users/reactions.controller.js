@@ -51,18 +51,18 @@ export const createShare = asyncErrorHandler(async (req, res, next) => {
 
   if (!post) return next(new ErrorHandler("Please send valid post id !", 400));
 
-  if (
-    post.shares.find(
-      (share) => share.creator.toString() == req.user.id.toString()
-    )
-  ) {
+  const alreadyShared = await Posts.findOne({
+    _id: new Types.ObjectId(postId),
+    shares: { $elemMatch: { creator: req.user.id } },
+  });
+  if (alreadyShared) {
     await Posts.updateOne(
-      { _id: postId, shares: { $elemMatch: { creator: req.user.id } } },
-      { $set: { $inc: { "shares.$.count": 1 } } }
+      { _id: new Types.ObjectId(postId), shares: { $elemMatch: { creator: req.user.id } } },
+      { $inc: { "shares.$.count": 1 } }
     );
   } else {
     await Posts.updateOne(
-      { _id: postId },
+      { _id: new Types.ObjectId(postId) },
       { $push: { shares: { creator: req.user.id, count: 1 } } }
     );
   }
@@ -318,7 +318,7 @@ export const getTotalSharesForPost = asyncErrorHandler(async (req, res, next) =>
   const {id : postId} = req.params;
   if(!mongoose.isValidObjectId(postId)) return next(new ErrorHandler("Please send valid post id !", 400));
 
-  const totalShares = await Posts.aggregate([
+  const [totalShares] = await Posts.aggregate([
     {
       $match : {_id : new Types.ObjectId(postId)}
     },
@@ -341,12 +341,35 @@ export const getTotalSharesForPost = asyncErrorHandler(async (req, res, next) =>
       }
     },
     {
-      $project : {
-        _id : 0,
-        shareDetails : 1,
-        count : {$sum : "$shares.count"}
+      $unwind : "$shareCreator"
+    },
+    
+    {
+      $facet : {
+        totalShares : [
+          {
+            $project : {
+              _id : 0,
+              shareCreator : 1,
+              count : {$sum : "$shares.count"}
+            }
+          }
+        ],
+        totalSharesCount :[ {
+          $group : {
+            _id : null,
+            total : { $sum : "$shares.count" }
+          }
+        },
+      {
+        $project : {
+          _id : 0,
+          totalSharesCount : "$total"
+        }
+      }] 
       }
-    }
+    },
+    
   ])
 
   sendResponse({res , data : totalShares , status : 200 , message : "Total shares fetched successfully !"})
