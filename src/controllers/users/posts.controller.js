@@ -186,6 +186,11 @@ export const getPosts = asyncErrorHandler(async (req, res, next) => {
       },
     },
     {
+      $addFields : {
+        reactions : "$reactions.creator"
+      }
+    },
+    {
       $unwind: {
         path : "$creatorDetails",
         preserveNullAndEmptyArrays : true
@@ -193,15 +198,16 @@ export const getPosts = asyncErrorHandler(async (req, res, next) => {
     },
     {
       $project: {
-        commentsCounts : {$sum : "$comments.commentCounts"},
+        commentsCount : {$sum : "$comments.commentCounts"},
         creatorDetails: 1,
         content: 1,
         _id: 1,
         createdAt: 1,
         updatedAt: 1,
         images: 1,
-        likesCounts : {$size : "$reactions"},
+        likesCount : {$size : "$reactions"},
         sharesCount: {$sum : "$shares.count"},
+        reactions : 1
       },
     },
     {
