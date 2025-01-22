@@ -27,7 +27,9 @@ const commentSchema = new mongoose.Schema(
             },
             replyComment: [
               {
-                replyContent: "",
+                replyContent: {
+                  type: String,
+                },
                 like: [
                   {
                     creator: {
