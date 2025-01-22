@@ -374,3 +374,58 @@ export const getTotalSharesForPost = asyncErrorHandler(async (req, res, next) =>
 
   sendResponse({res , data : totalShares , status : 200 , message : "Total shares fetched successfully !"})
 })
+
+export const getTotalViewsForPost = asyncErrorHandler(async (req, res, next) => {
+  const {id : postId} = req.params;
+  if(!mongoose.isValidObjectId(postId)) return next(new ErrorHandler("Please send valid post id !", 400));
+
+  const [totalViews] = await Posts.aggregate([
+    {
+      $match : {_id : new Types.ObjectId(postId)}
+    },
+    {
+      $unwind : "$views"
+    },
+    {
+      $lookup : {
+        from : 'users',
+        localField : "views.creator",
+        foreignField : "_id",
+        as : "viewCreator",
+        pipeline : [
+          {$project : {
+            name : {$concat : ["$firstname", " ", "$lastname"]},
+            avatar : "$avatar.url",
+            username : 1
+          }}
+        ]
+      }
+    },
+    {
+      $unwind : "$viewCreator"
+    },
+    
+    {
+      $facet : {
+        totalViewsDetails : [
+          {
+            $project : {
+              _id : 0,
+              viewCreator : 1,
+            }
+          }
+        ],
+        totalViewsCount :[ {
+          $count : {totalDocument : "$views"}
+        },
+      {
+        $project : {
+          _id : 0,
+          totalViewsCount : "$count"
+        }
+      }] 
+      }
+    },
+    
+  ])
+})
