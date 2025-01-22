@@ -57,7 +57,10 @@ export const createShare = asyncErrorHandler(async (req, res, next) => {
   });
   if (alreadyShared) {
     await Posts.updateOne(
-      { _id: new Types.ObjectId(postId), shares: { $elemMatch: { creator: req.user.id } } },
+      {
+        _id: new Types.ObjectId(postId),
+        shares: { $elemMatch: { creator: req.user.id } },
+      },
       { $inc: { "shares.$.count": 1 } }
     );
   } else {
@@ -111,6 +114,35 @@ export const createComment = asyncErrorHandler(async (req, res, next) => {
     message: "Comment created successfully !",
     status: 200,
   });
+});
+
+export const createViews = asyncErrorHandler(async (req, res, next) => {
+  const { id: postId } = req.params;
+
+  if (mongoose.isValidObjectId(postId) == false)
+    return next(new ErrorHandler("Please send valid post id !", 400));
+  const post = await Posts.findById(postId);
+  if (!post) return next(new ErrorHandler("Please send valid post id !", 400));
+  const alreadyViewed = await Posts.findOne({
+    _id: postId,
+    views: { $elemMatch: { creator: req.user.id } },
+  });
+
+  if (alreadyViewed)
+    return sendResponse({
+      res,
+      status: 200,
+      data: null,
+      message: "You have already viewed this post !",
+    });
+
+  await Posts.updateOne(
+    {
+      _id: new Types.ObjectId(postId),
+      views: { $elemMatch: { creator: req.user.id } },
+    },
+    { $push: { views: { creator: req.user.id } } }
+  );
 });
 
 export const deleteComment = asyncErrorHandler(async (req, res, next) => {
@@ -314,118 +346,141 @@ export const getTotalLikesDetailsForPost = asyncErrorHandler(
   }
 );
 
-export const getTotalSharesForPost = asyncErrorHandler(async (req, res, next) => {
-  const {id : postId} = req.params;
-  if(!mongoose.isValidObjectId(postId)) return next(new ErrorHandler("Please send valid post id !", 400));
+export const getTotalSharesForPost = asyncErrorHandler(
+  async (req, res, next) => {
+    const { id: postId } = req.params;
+    if (!mongoose.isValidObjectId(postId))
+      return next(new ErrorHandler("Please send valid post id !", 400));
 
-  const [totalShares] = await Posts.aggregate([
-    {
-      $match : {_id : new Types.ObjectId(postId)}
-    },
-    {
-      $unwind : "$shares"
-    },
-    {
-      $lookup : {
-        from : 'users',
-        localField : "shares.creator",
-        foreignField : "_id",
-        as : "shareCreator",
-        pipeline : [
-          {$project : {
-            name : {$concat : ["$firstname", " ", "$lastname"]},
-            avatar : "$avatar.url",
-            username : 1
-          }}
-        ]
-      }
-    },
-    {
-      $unwind : "$shareCreator"
-    },
-    
-    {
-      $facet : {
-        totalShares : [
-          {
-            $project : {
-              _id : 0,
-              shareCreator : 1,
-              count : {$sum : "$shares.count"}
-            }
-          }
-        ],
-        totalSharesCount :[ {
-          $group : {
-            _id : null,
-            total : { $sum : "$shares.count" }
-          }
-        },
+    const [totalShares] = await Posts.aggregate([
       {
-        $project : {
-          _id : 0,
-          totalSharesCount : "$total"
-        }
-      }] 
-      }
-    },
-    
-  ])
-
-  sendResponse({res , data : totalShares , status : 200 , message : "Total shares fetched successfully !"})
-})
-
-export const getTotalViewsForPost = asyncErrorHandler(async (req, res, next) => {
-  const {id : postId} = req.params;
-  if(!mongoose.isValidObjectId(postId)) return next(new ErrorHandler("Please send valid post id !", 400));
-
-  const [totalViews] = await Posts.aggregate([
-    {
-      $match : {_id : new Types.ObjectId(postId)}
-    },
-    {
-      $unwind : "$views"
-    },
-    {
-      $lookup : {
-        from : 'users',
-        localField : "views.creator",
-        foreignField : "_id",
-        as : "viewCreator",
-        pipeline : [
-          {$project : {
-            name : {$concat : ["$firstname", " ", "$lastname"]},
-            avatar : "$avatar.url",
-            username : 1
-          }}
-        ]
-      }
-    },
-    {
-      $unwind : "$viewCreator"
-    },
-    
-    {
-      $facet : {
-        totalViewsDetails : [
-          {
-            $project : {
-              _id : 0,
-              viewCreator : 1,
-            }
-          }
-        ],
-        totalViewsCount :[ {
-          $count : {totalDocument : "$views"}
-        },
+        $match: { _id: new Types.ObjectId(postId) },
+      },
       {
-        $project : {
-          _id : 0,
-          totalViewsCount : "$count"
-        }
-      }] 
-      }
-    },
-    
-  ])
-})
+        $unwind: "$shares",
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "shares.creator",
+          foreignField: "_id",
+          as: "shareCreator",
+          pipeline: [
+            {
+              $project: {
+                name: { $concat: ["$firstname", " ", "$lastname"] },
+                avatar: "$avatar.url",
+                username: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: "$shareCreator",
+      },
+
+      {
+        $facet: {
+          totalShares: [
+            {
+              $project: {
+                _id: 0,
+                shareCreator: 1,
+                count: { $sum: "$shares.count" },
+              },
+            },
+          ],
+          totalSharesCount: [
+            {
+              $group: {
+                _id: null,
+                total: { $sum: "$shares.count" },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                totalSharesCount: "$total",
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    sendResponse({
+      res,
+      data: totalShares,
+      status: 200,
+      message: "Total shares fetched successfully !",
+    });
+  }
+);
+
+export const getTotalViewsForPost = asyncErrorHandler(
+  async (req, res, next) => {
+    const { id: postId } = req.params;
+    if (!mongoose.isValidObjectId(postId))
+      return next(new ErrorHandler("Please send valid post id !", 400));
+
+    const [totalViews] = await Posts.aggregate([
+      {
+        $match: { _id: new Types.ObjectId(postId) },
+      },
+      {
+        $unwind: "$views",
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "views.creator",
+          foreignField: "_id",
+          as: "viewCreator",
+          pipeline: [
+            {
+              $project: {
+                name: { $concat: ["$firstname", " ", "$lastname"] },
+                avatar: "$avatar.url",
+                username: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: "$viewCreator",
+      },
+
+      {
+        $facet: {
+          totalViewsDetails: [
+            {
+              $project: {
+                _id: 0,
+                viewCreator: 1,
+              },
+            },
+          ],
+          totalViewsCount: [
+            {
+              $count: "totalCounts",
+            },
+            {
+              $project: {
+                _id: 0,
+                totalViewsCount: "$totalCounts",
+              },
+            },
+          ],
+        },
+      },
+    ]);
+    sendResponse({
+      res,
+      data: totalViews,
+      status: 200,
+      message: "Total views fetched successfully !",
+    });
+  }
+);
