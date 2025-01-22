@@ -313,3 +313,39 @@ export const getTotalLikesDetailsForPost = asyncErrorHandler(
     });
   }
 );
+
+export const getTotalSharesForPost = asyncErrorHandler(async (req, res, next) => {
+  const {id : postId} = req.params;
+  if(!mongoose.isValidObjectId(postId)) return next(new ErrorHandler("Please send valid post id !", 400));
+
+  const totalShares = await Posts.aggregate([
+    {
+      $match : {_id : new Types.ObjectId(postId)}
+    },
+    {
+      $unwind : "$shares"
+    },
+    {
+      $lookup : {
+        from : 'users',
+        localField : "shares.creator",
+        foreignField : "_id",
+        as : "shareCreator",
+        pipeline : [
+          {$project : {
+            name : {$concat : ["$firstname", " ", "$lastname"]},
+            avatar : "$avatar.url",
+            username : 1
+          }}
+        ]
+      }
+    },
+    {
+      $project : {
+        _id : 0,
+        shareDetails : 1,
+        count : {$sum : "$shares.count"}
+      }
+    }
+  ])
+})
