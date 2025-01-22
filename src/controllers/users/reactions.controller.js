@@ -254,7 +254,14 @@ export const likeAComment = asyncErrorHandler(async (req, res, next) => {
       { _id: commentId, "comment._id": innerCommentId },
       {
         $push: {
-          "comment.$.like": { creator: {_id : req.user.id , username : req.user.username , avatar : req.user?.avatar?.url}, likeType: likeType },
+          "comment.$.like": {
+            creator: {
+              _id: req.user.id,
+              username: req.user.username,
+              avatar: req.user?.avatar?.url,
+            },
+            likeType: likeType,
+          },
         },
       }
     );
@@ -293,7 +300,7 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
     comment: {
       $elemMatch: {
         _id: innerCommentId,
-        reply: { $elemMatch: { creator: req.user.id } },
+        reply: { $elemMatch: { "creator._id": req.user.id } },
       },
     },
   });
@@ -306,17 +313,17 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
         comment: {
           $elemMatch: {
             _id: innerCommentId,
-            reply: { $elemMatch: { creator: req.user.id } },
+            reply: { $elemMatch: { "creator._id": req.user.id } },
           },
         },
       },
       {
         $set: {
-          "comment.$.reply.$[innerReply].content": commentMessage,
+          "comment.$.reply.$[innerReply].replyContent": commentMessage,
         },
       },
       {
-        arrayFilters: [{ "innerReply.creator": req.user.id }],
+        arrayFilters: [{ "innerReply.creator._id": req.user.id }],
       }
     );
   } else {
@@ -325,7 +332,7 @@ export const replyComment = asyncErrorHandler(async (req, res, next) => {
       { _id: commentId, "comment._id": innerCommentId },
       {
         $push: {
-          "comment.$.reply": { creator: req.user.id, content: commentMessage },
+          "comment.$.reply": { creator: {_id : req.user.id , username : req.user.username , avatar : req.user?.avatar?.url}, replyContent: commentMessage , like : [] },
         },
       }
     );
@@ -569,16 +576,15 @@ export const getTotalCommentsForPost = asyncErrorHandler(
         },
       },
       {
-        $unwind : "$commentCreator"
+        $unwind: "$commentCreator",
       },
       {
         $project: {
           _id: 1,
           commentCreator: 1,
-          comment : 1
+          comment: 1,
         },
       },
-      
     ]);
 
     sendResponse({
