@@ -38,7 +38,6 @@ app.use('/api/v1/auth' , authRouter)
 app.use(isLoggedIn)
 
 // now we handle user related routes.
-app.use('/api/v1/user' , userRouter)
 app.use('/api/v1/user/post' , postsRouter)
 app.use('/api/v1/user/chat' , chatsRouter)
 app.use('/api/v1/user/message' , messageRouter)
