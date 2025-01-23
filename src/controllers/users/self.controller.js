@@ -505,18 +505,19 @@ export const getFollowBackUsers = asyncErrorHandler(async (req, res, next) => {
 
 export const myFollowers = asyncErrorHandler(async (req, res, next) => {
   const myFollowersList = await Followers.aggregate([
-    { $match: { follow: new Types.ObjectId(req.user.id) } },
+    { $match: { follow : new Types.ObjectId(req.user.id) } },
     {
       $lookup: {
         from: "users",
-        localField: "follow",
+        localField: "followedBy",
         foreignField: "_id",
-        as: "userDetails",
+        as: "follower",
         pipeline: [
           {
             $project: {
-              _id: 1,
-              name: { $concat: ["$firstname", " ", "$lastname"] },
+              _id : 0,
+              followersId : "$_id",
+              name :  { $concat: ["$firstname", " ", "$lastname"] },
               username: 1,
               avatar: "$avatar.url",
             },
@@ -525,12 +526,53 @@ export const myFollowers = asyncErrorHandler(async (req, res, next) => {
       },
     },
     {
+      $unwind : "$follower"
+    },
+   
+    {
       $project : {
         _id : 0,
-        userDetails : 1
+        follower : 1,
       }
     }
   ]);
   sendResponse({
     res, data : myFollowersList , message : "My followers fetched successfully !", status : 200})
+});
+
+export const myFollowing = asyncErrorHandler(async (req, res, next) => {
+  const myFollowingList = await Followers.aggregate([
+    { $match: { followedBy : new Types.ObjectId(req.user.id) } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "follow",
+        foreignField: "_id",
+        as: "following",
+        pipeline: [
+          {
+            $project: {
+              _id : 0,
+              followingId : "$_id",
+              name :  { $concat: ["$firstname", " ", "$lastname"] },
+              username: 1,
+              avatar: "$avatar.url",
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind : "$following"
+    },
+   
+    {
+      $project : {
+        _id : 0,
+        following : 1,
+      }
+    }
+  ]);
+  sendResponse({
+    res, data : myFollowingList , message : "My following fetched successfully !", status : 200})
 });
