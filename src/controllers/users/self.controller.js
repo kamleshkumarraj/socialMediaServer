@@ -8,6 +8,7 @@ import {
   uploadFilesOnCloudinary,
 } from "../../utils/cloudinary.utils.js";
 import { sendResponse } from "../../utils/sendResponse.js";
+import { Followers } from "../../models/followers.models.js";
 
 export const getBio = asyncErrorHandler(async (req, res, next) => {
   const myBio = await Users.aggregate([
@@ -500,4 +501,36 @@ export const getFollowBackUsers = asyncErrorHandler(async (req, res, next) => {
     data: followBackUser,
     message: "Follow back users fetched successfully !",
   });
+});
+
+export const myFollowers = asyncErrorHandler(async (req, res, next) => {
+  const myFollowersList = await Followers.aggregate([
+    { $match: { follow: new Types.ObjectId(req.user.id) } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "follow",
+        foreignField: "_id",
+        as: "userDetails",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: { $concat: ["$firstname", " ", "$lastname"] },
+              username: 1,
+              avatar: "$avatar.url",
+            },
+          },
+        ],
+      },
+    },
+    {
+      $project : {
+        _id : 0,
+        userDetails : 1
+      }
+    }
+  ]);
+  sendResponse({
+    res, data : myFollowersList , message : "My followers fetched successfully !", status : 200})
 });
