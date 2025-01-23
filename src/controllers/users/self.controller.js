@@ -117,7 +117,7 @@ export const getBio = asyncErrorHandler(async (req, res, next) => {
         username: 1,
         avatar: 1,
         posts: 1,
-        totalPost : { $size: "$posts" },
+        totalPost: { $size: "$posts" },
       },
     },
   ]);
@@ -331,9 +331,10 @@ export const getSuggestUser = asyncErrorHandler(async (req, res, next) => {
 
 // get a single user with details.
 export const getBioForUser = asyncErrorHandler(async (req, res, next) => {
-  const userId=  req.params.id;
-
-  if(!mongoose.isValidObjectId(userId)) return next(new ErrorHandler("Please send valid user id !", 404));
+  const userId = req.params.id;
+  console.log(req.user.id);
+  if (!mongoose.isValidObjectId(userId))
+    return next(new ErrorHandler("Please send valid user id !", 404));
 
   const [myBio] = await Users.aggregate([
     {
@@ -369,7 +370,6 @@ export const getBioForUser = asyncErrorHandler(async (req, res, next) => {
         as: "posts",
         //after getting post we join the user for getting the creators details.
         pipeline: [
-          
           // we get comments
           {
             $lookup: {
@@ -386,9 +386,6 @@ export const getBioForUser = asyncErrorHandler(async (req, res, next) => {
               ],
             },
           },
-          // {
-          //   $unwind: "$creatorDetails",
-          // },
           // now we find the like count share count and comment count for a post.
           {
             $project: {
@@ -412,6 +409,8 @@ export const getBioForUser = asyncErrorHandler(async (req, res, next) => {
       $addFields: {
         followersSize: { $size: "$Followers" },
         followingSize: { $size: "$Following" },
+        followers: "$Followers.followedBy",
+        following: "$Following.follow",
       },
     },
     {
@@ -424,7 +423,25 @@ export const getBioForUser = asyncErrorHandler(async (req, res, next) => {
         username: 1,
         avatar: 1,
         posts: 1,
-        totalPost : { $size: "$posts" },
+        totalPost: { $size: "$posts" },
+        isFollow: {
+          $cond: {
+            if: {
+              $in: [
+                req.user.id.toString(),
+                {
+                  $map: {
+                    input: "$followers",
+                    as: "id",
+                    in: { $toString: "$$id" },
+                  },
+                },
+              ],
+            },
+            then: true,
+            else: false,
+          },
+        },
       },
     },
   ]);
@@ -442,40 +459,45 @@ export const getBioForUser = asyncErrorHandler(async (req, res, next) => {
 // get all users for follow back means get all users that i am not following but those users follow me.
 
 export const getFollowBackUsers = asyncErrorHandler(async (req, res, next) => {
-  const {limit = 10 , page = 1} = req.params;
+  const { limit = 10, page = 1 } = req.params;
   const skip = (page - 1) * limit;
 
   const followBackUser = await Users.aggregate([
-    {$match : {_id : new Types.ObjectId(req.user.id)}},
+    { $match: { _id: new Types.ObjectId(req.user.id) } },
     {
-      $lookup : {
-        from : 'followers',
-        localField : "_id",
-        foreignField : "follow",
-        as : "followers"
-      }
+      $lookup: {
+        from: "followers",
+        localField: "_id",
+        foreignField: "follow",
+        as: "followers",
+      },
     },
     {
-      $lookup : {
-        from : 'followers',
-        localField : "_id",
-        foreignField : "followedBy",
-        as : "following"
-      }
+      $lookup: {
+        from: "followers",
+        localField: "_id",
+        foreignField: "followedBy",
+        as: "following",
+      },
     },
     {
-      $addFields : {
-        followBack : {
-          $setDifference : ["$followers.followedBy", "$following.follow"]
-        }
-      }
+      $addFields: {
+        followBack: {
+          $setDifference: ["$followers.followedBy", "$following.follow"],
+        },
+      },
     },
     {
-      $project : {
-        followBack : 1
-      }
-    }
-  ])
+      $project: {
+        followBack: 1,
+      },
+    },
+  ]);
 
-  sendResponse({res , status : 200 , data : followBackUser , message : "Follow back users fetched successfully !"})
-})
+  sendResponse({
+    res,
+    status: 200,
+    data: followBackUser,
+    message: "Follow back users fetched successfully !",
+  });
+});
