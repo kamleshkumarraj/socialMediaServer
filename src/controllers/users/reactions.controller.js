@@ -9,7 +9,7 @@ import { ErrorHandler } from "../../errors/errorHandler.errors.js";
 // Controller to create or update reactions for a post
 export const createReactions = asyncErrorHandler(async (req, res, next) => {
   const postId = req.params.id; // Get post ID from request parameters
-  const reactions = req.body.reactions || "like"; // Default reaction is 'like' if none provided
+   // Default reaction is 'like' if none provided
 
   // Validate post ID
   if (mongoose.isValidObjectId(postId) == false)
@@ -24,11 +24,7 @@ export const createReactions = asyncErrorHandler(async (req, res, next) => {
     _id: postId,
     "reactions.creator": req.user.id.toString(),
   });
-  if (
-    post.reactions.find(
-      (reaction) => reaction.creator.toString() == req.user.id.toString()
-    )
-  ) {
+  if (alreadyReacted) {
     // Update the reaction type if it exists
     await Posts.updateOne(
       { _id: postId, "reactions.creator": req.user.id },
@@ -39,7 +35,7 @@ export const createReactions = asyncErrorHandler(async (req, res, next) => {
     await Posts.updateOne(
       { _id: postId },
       {
-        $push: { reactions: { creator: req.user.id, reactionType: reactions } },
+        $push: { reactions: { creator: req.user.id, reactionType: "like" } },
       }
     );
   }

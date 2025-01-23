@@ -335,7 +335,7 @@ export const getBioForUser = asyncErrorHandler(async (req, res, next) => {
 
   if(!mongoose.isValidObjectId(userId)) return next(new ErrorHandler("Please send valid user id !", 404));
 
-  const myBio = await Users.aggregate([
+  const [myBio] = await Users.aggregate([
     {
       $match: {
         _id: new Types.ObjectId(userId),
