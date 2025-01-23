@@ -624,3 +624,72 @@ export const myFollowing = asyncErrorHandler(async (req, res, next) => {
     status: 200,
   });
 });
+
+export const searchUser = asyncErrorHandler(async (req, res, next) => {
+  const {username=""} = req.query;
+  const {page = 1 , limit = 10} = req.query;
+  const skip = (page - 1) * limit;
+
+  const users = await Users.aggregate([
+    {
+      $lookup: {
+        from: "followers",
+        localField: "_id",
+        foreignField: "followedBy",
+        as: "following",
+      },
+    },
+    {
+      $lookup: {
+        from: "followers",
+        localField: "_id",
+        foreignField: "follow",
+        as: "followers",
+      },
+    },
+    // other method for finding the following and followers.
+    // you can also use this with handling the null value.
+    {
+      $addFields : {
+        followers : "$followers.followedBy",
+        following : "$following.follow"
+      }
+    },
+
+    {
+      $match: {
+        username : {$regex : username , $options : "i"},
+        $or: [
+          {_id: new Types.ObjectId(req.user.id) },
+          { followers: { $eq: new Types.ObjectId(req.user.id) } },
+          { following: { $eq: new Types.ObjectId(req.user.id) } },
+        ],
+      },
+    },
+
+    {
+      $project: {
+        _id: 1,
+        firstname: 1,
+        lastname: 1,
+        email: 1,
+        username: 1,
+        avatar: 1,
+        followers: 1,
+        following: 1,
+      },
+    },
+    {
+      $skip: skip,
+    },
+    {
+      $limit: limit,
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+  ])
+  sendResponse({res , data: users , message : "You get all your friends successfully !" , status : 200})
+})
