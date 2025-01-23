@@ -504,45 +504,76 @@ export const getFollowBackUsers = asyncErrorHandler(async (req, res, next) => {
 });
 
 export const myFollowers = asyncErrorHandler(async (req, res, next) => {
-  const myFollowersList = await Followers.aggregate([
-    { $match: { follow : new Types.ObjectId(req.user.id) } },
+  const myFollowersList = await Users.aggregate([
+    { $match: { _id: new Types.ObjectId(req.user.id) } },
     {
       $lookup: {
-        from: "users",
-        localField: "followedBy",
-        foreignField: "_id",
-        as: "follower",
+        from: "followers",
+        localField: "_id",
+        foreignField: "follow",
+        as: "followers",
         pipeline: [
           {
+            $lookup: {
+              from: "users",
+              localField: "followedBy",
+              foreignField: "_id",
+              as: "followedBy",
+              pipeline: [
+                {
+                  $project: {
+                    _id: 0,
+                    followerId: "$_id",
+                    name: { $concat: ["$firstname", " ", "$lastname"] },
+                    username: 1,
+                    avatar: "$avatar.url",
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $unwind: "$followedBy",
+          },
+          {
             $project: {
-              _id : 0,
-              followersId : "$_id",
-              name :  { $concat: ["$firstname", " ", "$lastname"] },
-              username: 1,
-              avatar: "$avatar.url",
+              _id: 0,
+              follower: "$followedBy",
             },
           },
         ],
       },
     },
     {
-      $unwind : "$follower"
+      $lookup: {
+        from: "followers",
+        localField: "_id",
+        foreignField: "followedBy",
+        as: "following",
+      },
     },
-   
     {
-      $project : {
-        _id : 0,
-        follower : 1,
-      }
-    }
+      $unwind: "$followers",
+    },
+    {
+      $project: {
+        _id: 0,
+        followers: "$followers.follower",
+        following: 1,
+      },
+    },
   ]);
   sendResponse({
-    res, data : myFollowersList , message : "My followers fetched successfully !", status : 200})
+    res,
+    data: myFollowersList,
+    message: "My followers fetched successfully !",
+    status: 200,
+  });
 });
 
 export const myFollowing = asyncErrorHandler(async (req, res, next) => {
   const myFollowingList = await Followers.aggregate([
-    { $match: { followedBy : new Types.ObjectId(req.user.id) } },
+    { $match: { followedBy: new Types.ObjectId(req.user.id) } },
     {
       $lookup: {
         from: "users",
@@ -552,9 +583,9 @@ export const myFollowing = asyncErrorHandler(async (req, res, next) => {
         pipeline: [
           {
             $project: {
-              _id : 0,
-              followingId : "$_id",
-              name :  { $concat: ["$firstname", " ", "$lastname"] },
+              _id: 0,
+              followingId: "$_id",
+              name: { $concat: ["$firstname", " ", "$lastname"] },
               username: 1,
               avatar: "$avatar.url",
             },
@@ -563,16 +594,20 @@ export const myFollowing = asyncErrorHandler(async (req, res, next) => {
       },
     },
     {
-      $unwind : "$following"
+      $unwind: "$following",
     },
-   
+
     {
-      $project : {
-        _id : 0,
-        following : 1,
-      }
-    }
+      $project: {
+        _id: 0,
+        following: 1,
+      },
+    },
   ]);
   sendResponse({
-    res, data : myFollowingList , message : "My following fetched successfully !", status : 200})
+    res,
+    data: myFollowingList,
+    message: "My following fetched successfully !",
+    status: 200,
+  });
 });
