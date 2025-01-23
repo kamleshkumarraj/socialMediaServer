@@ -556,10 +556,23 @@ export const myFollowers = asyncErrorHandler(async (req, res, next) => {
       $unwind: "$followers",
     },
     {
+      $addFields : {
+        following: "$following.follow",
+        followers: "$followers.follower",
+      }
+    },
+    {
       $project: {
         _id: 0,
-        followers: "$followers.follower",
-        following: 1,
+        followers: 1,
+        isFollowBack : {
+          $cond : {
+            if : {$in : ["$followers.followerId" , "$following"]},
+            then : false,
+            else : true
+          }
+        }
+       
       },
     },
   ]);
