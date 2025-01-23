@@ -20,6 +20,10 @@ export const createReactions = asyncErrorHandler(async (req, res, next) => {
   if (!post) return next(new ErrorHandler("Please send valid post id !", 400));
 
   // Check if user already reacted to the post
+  const alreadyReacted = await Posts.findOne({
+    _id: postId,
+    "reactions.creator": req.user.id.toString(),
+  });
   if (
     post.reactions.find(
       (reaction) => reaction.creator.toString() == req.user.id.toString()
@@ -27,8 +31,8 @@ export const createReactions = asyncErrorHandler(async (req, res, next) => {
   ) {
     // Update the reaction type if it exists
     await Posts.updateOne(
-      { _id: postId, reactions: { $elemMatch: { creator: req.user.id } } },
-      { $set: { "reactions.$.reactionType": reactions } }
+      { _id: postId, "reactions.creator": req.user.id },
+      { $pull: { reactions: { creator: req.user.id, reactionType: "like"} } }
     );
   } else {
     // Add a new reaction

@@ -1,6 +1,6 @@
 export const sendResponse = (({res , status , data , message}) => {
     res.status(status).json({
-        succuss : true,
+        success : true,
         message,
         data
     })
